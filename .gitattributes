@@ -1,0 +1,30 @@
+# Normalize text files in repository.
+* text=auto
+
+*.cs text diff=csharp
+*.md text
+*.json text
+*.inputactions text
+*.asmdef text
+
+# Keep Unity assets and binary project metadata intact.
+*.meta text
+*.unity text
+*.prefab text
+*.asset text
+*.fbx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.ttf binary
+*.otf binary
+*.dll binary
+*.so binary
+*.aar binary
+*.jar binary
+*.apk binary
+*.aab binary

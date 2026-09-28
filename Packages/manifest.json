@@ -1,0 +1,25 @@
+{
+  "scopedRegistries": [
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.openupm",
+        "com.revenuecat.purchases-unity",
+        "com.google.external-dependency-manager"
+      ]
+    }
+  ],
+  "dependencies": {
+    "com.google.external-dependency-manager": "1.2.189",
+    "com.revenuecat.purchases-unity": "9.11.1",
+    "com.unity.cinemachine": "2.9.7",
+    "com.unity.inputsystem": "1.7.0",
+    "com.unity.modules.androidjni": "1.0.0",
+    "com.unity.modules.animation": "1.0.0",
+    "com.unity.modules.audio": "1.0.0",
+    "com.unity.modules.physics2d": "1.0.0",
+    "com.unity.render-pipelines.universal": "14.0.12",
+    "com.unity.test-framework": "1.1.33"
+  }
+}

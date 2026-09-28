@@ -1,0 +1,117 @@
+# ==============================================================
+# Cat Courier - Unity 2022.3 LTS
+# Unity generated state is disposable; authored source is not.
+# ==============================================================
+
+# --- Internal planning and design documents ----------------------
+# Authoritative spec, implementation plan, spike notes and the local
+# verification guide stay on the developer machine. README.md is the
+# single public source of truth for this repository.
+/docs/
+
+# --- Unity generated directories ---------------------------------
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Tt]est[Rr]esults/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/[Uu]tmp/
+
+# --- Unity generated root files ----------------------------------
+/sysinfo.txt
+/crashlytics-build.properties
+*.stackdump
+*.dmp
+
+# --- Build outputs (never committed: large binaries) -------------
+*.apk
+*.aab
+*.ipa
+*.app
+*.xcarchive
+*.unitypackage
+
+# --- Generated IDE and solution files ---------------------------
+.vs/
+.idea/
+.vscode/
+.fleet/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.DotSettings.user
+
+# --- OS and merge leftovers -------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.orig
+*.rej
+
+# ==============================================================
+# Secrets and signing material
+# The RevenueCat public keys live in a local, ignored asset.
+# Never let key material reach a commit.
+# ==============================================================
+
+# Local Unity/RevenueCat configuration
+ProjectSettings/PurchasingSettings.asset
+Assets/_Project/Config/RevenueCatConfig.asset
+Assets/_Project/Config/RevenueCatConfig.asset.meta
+.crashlytics-build.properties
+
+# Environment files
+.env
+.env.*
+.envrc
+
+# Key and certificate material
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+*.ppk
+*.cer
+*.der
+*.p8
+*.mobileprovision
+*.provisionprofile
+*.certSigningRequest
+ExportOptions*.plist
+
+# ==============================================================
+# iOS export intermediates
+# Unity's generated Xcode project is build output, not source.
+# ==============================================================
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+Assets/Plugins/iOS/Pods/
+Podfile.lock
+
+# ==============================================================
+# Intentionally TRACKED - do not add these to this file
+# ==============================================================
+# Assets/_Project/Config/ChunkCatalog.asset    authored chunk registration
+# Assets/_Project/Config/AudioLibrary.asset    authored audio mapping
+# Assets/_Project/Scenes/*.unity               scene sources
+# Assets/_Project/**/*.meta                    Unity GUID references
+# Packages/packages-lock.json                  exact dependency versions
+# ProjectSettings/**                           project configuration
+# Tools/*.ps1, docs/*.md                       verification and documentation
