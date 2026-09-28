@@ -58,6 +58,20 @@ Write-Stage '3/4  Edit Mode tests'
 if ($SkipTests) {
     Write-Warn 'Skipped by -SkipTests.'
 } else {
+    # A cold clone has no compiled assemblies. The first editor compile can fail to
+    # resolve package assemblies (Input System, and everything depending on it such as
+    # URP) because those assemblies are rebuilt in the same pass, so warm the project
+    # with a plain import before asking the test runner to load anything.
+    $assemblies = Join-Path $root 'Library\ScriptAssemblies'
+    if (-not (Test-Path $assemblies)) {
+        Write-Info 'Cold clone detected (no Library\ScriptAssemblies); running an import pass first.'
+        $importLog = New-ArtifactFile -Root $root -SubDir 'Logs' -Name "day6-verify-import-$stamp.log"
+        $import = Invoke-Unity -UnityArgs @('-projectPath', $root, '-quit') -LogFile $importLog -Label 'Import and compile pass'
+        if ($import.ExitCode -ne 0) {
+            Add-Failure "Cold import failed (Unity exit code $($import.ExitCode)). See $(Split-Path -Leaf $importLog)."
+        }
+    }
+
     $report = New-ArtifactFile -Root $root -SubDir 'TestResults' -Name "day6-verify-nunit-$stamp.xml"
     $log = New-ArtifactFile -Root $root -SubDir 'Logs' -Name "day6-verify-tests-$stamp.log"
     $null = Invoke-EditModeTests -Root $root -ReportPath $report -LogPath $log -Label 'Edit Mode tests'

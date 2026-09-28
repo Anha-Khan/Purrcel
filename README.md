@@ -89,10 +89,12 @@ Project configuration: Linear color space, IL2CPP scripting backend, .NET Standa
 1. Install Unity `2022.3.62f3` and Android Build Support.
 2. Clone or download this repository and open the folder with that editor version.
 3. Allow package import to finish.
-4. Run **`Cat Courier > Setup > Apply All`**. It is idempotent and creates or repairs scenes, URP settings, the chunk catalog, the audio library, and a local RevenueCat config asset.
+4. Run **`Cat Courier > Setup > Apply All`**. It is idempotent and creates or repairs scenes, URP settings, the chunk catalog, the audio library, and a local RevenueCat config asset. On a fresh clone this first run also performs the initial import and compile that every later step depends on.
 5. Enter RevenueCat Android/iOS **public sandbox keys** in `Assets/_Project/Config/RevenueCatConfig.asset`. This file is gitignored — never commit it.
 6. Run **`Cat Courier > Validate > Release Readiness`** to print a PASS/WARN/BLOCKER report describing exactly what content is still missing.
 7. Open `Assets/_Project/Scenes/Boot.unity` and enter Play mode.
+
+> **Running command-line tests?** Run them before building, or at least let Unity import and compile once first. A `-runTests` invocation against a tree that last performed an Android player build can fail to resolve package assemblies such as Input System and URP, because they are rebuilt for the editor in the same pass. The project itself is valid; only the ordering is wrong. `Tools/verify-project.ps1` runs tests ahead of the build and also performs an import pass when it detects a cold clone.
 
 The design specification and the implementation plan that drove this build are maintained locally and are intentionally not committed.
 
