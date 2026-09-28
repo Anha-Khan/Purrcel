@@ -13,7 +13,6 @@
   "dependencies": {
     "com.google.external-dependency-manager": "1.2.189",
     "com.revenuecat.purchases-unity": "9.11.1",
-    "com.unity.cinemachine": "2.9.7",
     "com.unity.inputsystem": "1.7.0",
     "com.unity.modules.androidjni": "1.0.0",
     "com.unity.modules.animation": "1.0.0",

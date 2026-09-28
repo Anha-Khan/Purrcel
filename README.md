@@ -74,7 +74,6 @@ Packages resolve from `Packages/manifest.json`:
 | Package | Version |
 |---|---|
 | Input System | 1.7.0 |
-| Cinemachine | 2.9.7 |
 | Universal Render Pipeline | 14.0.12 |
 | Unity Test Framework | 1.1.33 |
 | RevenueCat Purchases Unity | 9.11.1 |

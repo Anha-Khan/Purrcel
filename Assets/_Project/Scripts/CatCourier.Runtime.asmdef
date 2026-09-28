@@ -3,7 +3,6 @@
     "rootNamespace": "CatCourier",
     "references": [
         "Unity.InputSystem",
-        "Unity.Cinemachine",
         "revenuecat.purchases-unity"
     ],
     "includePlatforms": [],
