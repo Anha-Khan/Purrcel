@@ -1,0 +1,18 @@
+{
+    "name": "CatCourier.Runtime",
+    "rootNamespace": "CatCourier",
+    "references": [
+        "Unity.InputSystem",
+        "Unity.Cinemachine",
+        "revenuecat.purchases-unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
