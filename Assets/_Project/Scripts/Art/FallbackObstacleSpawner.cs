@@ -116,6 +116,7 @@ namespace CatCourier.Art
             if (sequence > 0 && sequence % bag.Length == 0) ShuffleBag();
             var kind = bag[sequence % bag.Length];
             var x = nextSpawnX;
+            var spacing = Mathf.Lerp(9.5f, 13.5f, (float)random.NextDouble());
             switch (kind)
             {
                 case HazardKind.Low: SpawnLow(x, false); break;
@@ -134,9 +135,14 @@ namespace CatCourier.Art
                 SpawnCoin(x, 1.6f, false);
                 SpawnCoin(x + 0.9f, 1.35f, false);
             }
-            SpawnCoin(x + 3f, 0.45f, false);
-            SpawnCoin(x + 4.2f, 0.45f, false);
-            nextSpawnX += Mathf.Lerp(9.5f, 13.5f, (float)random.NextDouble());
+            // Leave a ground-level trail between hazards so every part of the
+            // run has collectible coins, including when the hazard coins are missed.
+            for (var offset = 3f; offset < spacing - 2f; offset += 1.2f)
+            {
+                if (offset < 5f || random.NextDouble() < 0.8)
+                    SpawnCoin(x + offset, 0.45f, false);
+            }
+            nextSpawnX += spacing;
             sequence++;
         }
 
@@ -166,6 +172,8 @@ namespace CatCourier.Art
                 if (frames != null && frames.Length > 0) visual.Configure(frames, 5f);
             }
             if (falling) clone.AddComponent<FallingRoadHazard>().Configure(player, landing.y);
+            // A template may have been disabled during an earlier encounter.
+            clone.SetActive(true);
             spawned.Add(clone);
         }
 
@@ -209,6 +217,9 @@ namespace CatCourier.Art
                 visual.transform.localScale = Vector3.one * (special ? 0.48f : 0.36f);
                 visual.color = special ? new Color(0.55f, 1f, 0.95f) : Color.white;
             }
+            // Unity copies the template's active state. The original scene coin
+            // disables itself when collected, but future route coins must appear.
+            clone.SetActive(true);
             spawned.Add(clone);
         }
 

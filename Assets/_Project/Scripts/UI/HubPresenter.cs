@@ -81,7 +81,7 @@ namespace CatCourier.UI
         {
             EnsureStyles();
             var width = Screen.width * 0.63f;
-            GUI.Label(new Rect(36f, 25f, width - 230f, 54f), "CAT COURIER", titleStyle);
+            GUI.Label(new Rect(36f, 25f, width - 230f, 54f), "PURRCEL", titleStyle);
             DrawCoinTopBar();
             DrawTabBar();
 

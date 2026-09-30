@@ -172,7 +172,7 @@ namespace CatCourier.UI
         {
             var result = game.LastRun;
             var header = result.PackagesDelivered > 0 ? "Delivered" : "Wiped out";
-            return $"Cat Courier - {header}: {result.Score} pts, {result.DistanceMeters:0} m, " +
+            return $"Purrcel - {header}: {result.Score} pts, {result.DistanceMeters:0} m, " +
                    $"{result.PackagesDelivered} package(s) in {result.DistrictReached}.";
         }
 

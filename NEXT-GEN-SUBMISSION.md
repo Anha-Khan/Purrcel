@@ -1,4 +1,4 @@
-# Cat Courier — Shipaton Next Gen Android demo
+# Purrcel — Shipaton Next Gen Android demo
 
 This is the student-only Next Gen route. It does not require an app-store release, but the submitted game must work, demonstrate a purchase through the RevenueCat SDK, and include a public open-source repository and a device video. A Unity Editor purchase using `FakePurchasesBackend` is only a local simulation and is not the RevenueCat demonstration.
 
@@ -25,7 +25,7 @@ Test Store keys only work in debuggable development builds. Never upload a build
 
 ## 3. Verify the actual SDK purchase
 
-On the phone, open Cat Courier, tap **Go Premium**, and confirm the live monthly price appears with no **DEVELOPMENT FAKE DATA** banner. Tap **Buy** and choose the Test Store success action. Confirm the paywall reports success, the hub says premium is active, and the `premium` entitlement appears for the customer in the RevenueCat dashboard as a sandbox transaction. Restart the app and use **Restore Purchases** to check that access returns. Record this sequence for the demo.
+On the phone, open Purrcel, tap **Go Premium**, and confirm the live monthly price appears with no **DEVELOPMENT FAKE DATA** banner. Tap **Buy** and choose the Test Store success action. Confirm the paywall reports success, the hub says premium is active, and the `premium` entitlement appears for the customer in the RevenueCat dashboard as a sandbox transaction. Restart the app and use **Restore Purchases** to check that access returns. Record this sequence for the demo.
 
 If the paywall says “Store unavailable,” check the key, `default` offering, `$rc_monthly` package, product attachment, phone internet connection, and Unity Console/Android logcat. If the purchase succeeds but premium stays locked, check the product's `premium` entitlement attachment.
 

@@ -124,6 +124,12 @@ namespace CatCourier.Tests.PlayMode
             Assert.That(fallback, Is.Not.Null);
             Assert.That(fallback.activeInHierarchy, Is.True);
 
+            // Collecting the scene coin deactivates the object used as the
+            // spawner template. Later clones still need to be active.
+            var coinTemplate = fallback.GetComponentInChildren<CoinPickup>(true);
+            Assert.That(coinTemplate, Is.Not.Null);
+            coinTemplate.gameObject.SetActive(false);
+
             // The first shuffled bag guarantees one of each hazard; inspect it
             // before the recycler removes objects behind the camera.
             player.enabled = false;
@@ -141,6 +147,9 @@ namespace CatCourier.Tests.PlayMode
             Assert.That(firstBag.Any(item => item is PitHazard), Is.True);
             Assert.That(firstBag.Any(item => item.name.StartsWith("Slide Under")), Is.True);
             Assert.That(firstBag.Any(item => item.name.StartsWith("Falling Road")), Is.True);
+            Assert.That(fallback.GetComponentsInChildren<CoinPickup>()
+                .Any(coin => coin.name == "Route Coin" && coin.transform.position.x > 30f), Is.True,
+                "Coins spawned after the scene template is collected must be active.");
 
             body.position = new Vector2(85f, 0.4f);
             player.transform.position = body.position;
@@ -175,6 +184,18 @@ namespace CatCourier.Tests.PlayMode
             Assert.That(fallback.GetComponentsInChildren<CoinPickup>()
                 .Any(coin => coin.name == "Special Coin"), Is.True);
             Assert.That(fallback.GetComponentInChildren<BoostPickup>(), Is.Not.Null);
+
+            body.position = new Vector2(170f, 0.4f);
+            player.transform.position = body.position;
+            yield return null;
+            yield return null;
+            Assert.That(fallback.GetComponentsInChildren<CoinPickup>()
+                .Any(coin => coin.name == "Route Coin" && coin.transform.position.x > 170f), Is.True,
+                "Ground coin trails must continue far into the run.");
+            Assert.That(fallback.GetComponentsInChildren<MonoBehaviour>()
+                .Any(component => (component is StaticObstacle || component is PitHazard) &&
+                    component.transform.position.x > 170f), Is.True,
+                "Hazards must continue far into the run.");
 
             yield return SceneManager.UnloadSceneAsync("Game");
         }

@@ -85,7 +85,7 @@ namespace CatCourier.Editor
         {
             PlayerSettings.companyName = "Cat Courier";
             EditorSettings.serializationMode = SerializationMode.ForceText;
-            PlayerSettings.productName = "Cat Courier";
+            PlayerSettings.productName = "Purrcel";
             PlayerSettings.bundleVersion = "0.1.0";
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.catcourier.game");
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, "com.catcourier.game");

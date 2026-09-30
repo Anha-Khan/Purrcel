@@ -1,6 +1,6 @@
-# Cat Courier
+# Purrcel
 
-Cat Courier is a landscape 2D endless runner built with Unity 2022.3 LTS, C#, URP, and RevenueCat. A delivery cat auto-runs across procedurally assembled rooftops, collects coins, carries packages, avoids obstacles, survives weather and district changes, and spends earned coins on upgrades and cat breeds between runs.
+Purrcel is a landscape 2D endless runner built with Unity 2022.3 LTS, C#, URP, and RevenueCat. A delivery cat auto-runs across procedurally assembled rooftops, collects coins, carries packages, avoids obstacles, survives weather and district changes, and spends earned coins on upgrades and cat breeds between runs.
 
 **Shipaton Next Gen Android demo:** follow [NEXT-GEN-SUBMISSION.md](NEXT-GEN-SUBMISSION.md) to configure a real RevenueCat Test Store purchase on a development APK and prepare the student submission. Editor purchases are simulated and do not demonstrate the RevenueCat SDK.
 
