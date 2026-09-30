@@ -286,7 +286,7 @@ The secret scanner never prints a matched value — only the path, line, rule, a
 2. Run **`Cat Courier > Build > Build Android (Development)`**.
 3. The APK is written to `Builds/Android/CatCourier.apk`.
 
-Package `com.catcourier.game`, version `0.1.0`, min SDK 24, target SDK 33, ARMv7 + ARM64. Build artifacts are gitignored; attach the APK as a release asset rather than committing it. This is a development build, which is also why the fake monetization backend is the default in it.
+Package `com.catcourier.game`, version `0.1.0`, min SDK 24, target SDK 34, ARMv7 + ARM64. Build artifacts are gitignored; attach the APK as a release asset rather than committing it. This is a development build, which is also why the fake monetization backend is the default in it.
 
 For the Next Gen Android demo, use **Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo**, enter a Test Store public key, then **Cat Courier > Build > Android Next Gen Demo APK**. This path blocks an APK with fake purchases or a missing key.
 
