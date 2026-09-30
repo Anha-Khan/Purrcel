@@ -15,6 +15,47 @@ namespace CatCourier.Tests.PlayMode
     public sealed class GameScenePlayabilityTests
     {
         [UnityTest]
+        public IEnumerator HubScene_HasPaintedCamera()
+        {
+            yield return SceneManager.LoadSceneAsync("Hub", LoadSceneMode.Additive);
+            var hub = GameObject.Find("HubRoot");
+            Assert.That(hub, Is.Not.Null);
+            Assert.That(hub.GetComponentInChildren<Camera>(), Is.Not.Null,
+                "The Hub must render behind its menu instead of showing 'No cameras rendering'.");
+            Assert.That(hub.transform.Find("Painted Courier Square"), Is.Not.Null);
+            yield return SceneManager.UnloadSceneAsync("Hub");
+        }
+
+        [UnityTest]
+        public IEnumerator OpeningCoins_AreVisibleAndCollectibleBeforeFirstHazard()
+        {
+            yield return SceneManager.LoadSceneAsync("Game", LoadSceneMode.Additive);
+            var player = Object.FindObjectOfType<PlayerController>();
+            var root = GameObject.Find("Day2FallbackContent");
+            Assert.That(player, Is.Not.Null);
+            Assert.That(root, Is.Not.Null);
+            var openingCoins = root.GetComponentsInChildren<CoinPickup>()
+                .Where(coin => coin.name == "Route Coin" && coin.transform.position.x < 8f).ToArray();
+            Assert.That(openingCoins.Length, Is.GreaterThanOrEqualTo(4));
+            Assert.That(openingCoins.All(coin => coin.GetComponentInChildren<SpriteRenderer>() != null), Is.True);
+            Assert.That(openingCoins.All(coin =>
+                coin.GetComponentInChildren<SpriteRenderer>().transform.position.y <
+                coin.transform.position.y - 0.7f), Is.True,
+                "The collectible rings must appear on the cat's painted road lane.");
+
+            var timeout = 4f;
+            while (player.DistanceMeters < 8f && timeout > 0f && player.State != PlayerState.Dead)
+            {
+                yield return new WaitForFixedUpdate();
+                timeout -= Time.fixedDeltaTime;
+            }
+            var collected = player.GetComponent<CoinManager>().RunCoins;
+            yield return SceneManager.UnloadSceneAsync("Game");
+            Assert.That(collected, Is.GreaterThan(0),
+                "The cat must collect an opening ground-level coin without a jump.");
+        }
+
+        [UnityTest]
         public IEnumerator RealGameScene_CanRunAndJumpPastStreamedHazards()
         {
             yield return SceneManager.LoadSceneAsync("Game", LoadSceneMode.Additive);

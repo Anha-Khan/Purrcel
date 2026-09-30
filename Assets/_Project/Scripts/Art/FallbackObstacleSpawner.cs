@@ -54,10 +54,19 @@ namespace CatCourier.Art
                          staticTemplate != null && coinTemplate != null;
             if (!configured) return;
             var visual = coinTemplate.GetComponentInChildren<SpriteRenderer>(true);
-            if (visual != null) visual.transform.localScale = Vector3.one * 0.22f;
-            SpawnCoin(4.8f, 0.55f, false);
-            SpawnCoin(5.9f, 0.55f, false);
-            SpawnCoin(7f, 0.55f, false);
+            if (visual != null)
+            {
+                // The painted cat is offset below its physics trigger to sit on
+                // the road. Keep coin triggers where the cat can collect them,
+                // while drawing their rings in the same visible lane.
+                visual.transform.localPosition = new Vector3(0f, -2.8f, 0f);
+                visual.transform.localScale = Vector3.one * 0.36f;
+                if (art != null && art.coinFrames != null && art.coinFrames.Length >= 2)
+                    visual.GetComponent<GeneratedSpriteLoop>()?.Configure(
+                        new[] { art.coinFrames[0], art.coinFrames[1] }, 4f);
+            }
+            for (var x = 2.4f; x <= 7.2f; x += 1.2f)
+                SpawnCoin(x, 0.45f, false);
             SpawnCoin(11.1f, 1.4f, false);
             SpawnCoin(12f, 1.65f, false);
             SpawnCoin(12.9f, 1.4f, false);
@@ -125,6 +134,8 @@ namespace CatCourier.Art
                 SpawnCoin(x, 1.6f, false);
                 SpawnCoin(x + 0.9f, 1.35f, false);
             }
+            SpawnCoin(x + 3f, 0.45f, false);
+            SpawnCoin(x + 4.2f, 0.45f, false);
             nextSpawnX += Mathf.Lerp(9.5f, 13.5f, (float)random.NextDouble());
             sequence++;
         }
@@ -195,7 +206,7 @@ namespace CatCourier.Art
             var visual = clone.GetComponentInChildren<SpriteRenderer>(true);
             if (visual != null)
             {
-                visual.transform.localScale = Vector3.one * (special ? 0.30f : 0.22f);
+                visual.transform.localScale = Vector3.one * (special ? 0.48f : 0.36f);
                 visual.color = special ? new Color(0.55f, 1f, 0.95f) : Color.white;
             }
             spawned.Add(clone);

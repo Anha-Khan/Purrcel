@@ -45,7 +45,7 @@ The game runs in Unity `2022.3.62f3`. The Game scene has a playable fallback rou
 | UI presenters (hub, HUD, pause, death) | Complete (IMGUI placeholders) |
 | Persistence with atomic writes and recovery | Complete |
 
-Latest macOS editor verification: **79/79 EditMode tests** and **26/26 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards and verifies that coins are collected. An earlier Windows Android development build passed; this art and gameplay update has not been rebuilt for Android.
+Latest macOS editor verification: **79/79 EditMode tests** and **28/28 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, and checks that the Hub has a painted camera view. An earlier Windows Android development build passed; this art and gameplay update has not been rebuilt for Android.
 
 ## What is not finished yet
 
@@ -259,7 +259,7 @@ Writes are atomic: serialize to a temporary file, validate it can be read back, 
 
 1. Open **Window > General > Test Runner**.
 2. Select **EditMode**, run all — 79 tests.
-3. Select **PlayMode**, run all — 26 tests.
+3. Select **PlayMode**, run all — 28 tests.
 
 The PlayMode suite proves save-path isolation by snapshotting `Application.persistentDataPath` and failing if it changes.
 

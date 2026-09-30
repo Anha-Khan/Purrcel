@@ -255,7 +255,7 @@ namespace CatCourier.Editor
                     if (groundMesh != null) groundMesh.enabled = false;
                 }
                 foreach (var coin in fallback.GetComponentsInChildren<CoinPickup>(true))
-                    AddLoop(coin.transform, "Generated Coin", art.coinFrames.Take(3).ToArray(), 8f, 0.075f, 52);
+                    AddLoop(coin.transform, "Generated Coin", art.coinFrames.Take(2).ToArray(), 4f, 0.36f, 52, -2.8f);
                 foreach (var obstacle in fallback.GetComponentsInChildren<StaticObstacle>(true))
                 {
                     AddLoop(obstacle.transform, "Generated Loose Paver", art.oldTownPaverFrames, 4f, 0.24f, 45, -1.15f);

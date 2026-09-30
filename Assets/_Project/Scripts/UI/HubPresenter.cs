@@ -1,3 +1,4 @@
+using CatCourier.Art;
 using CatCourier.Audio;
 using CatCourier.Core;
 using CatCourier.Monetization;
@@ -30,12 +31,22 @@ namespace CatCourier.UI
 
         private string restoreMessage = string.Empty;
         private string premiumMessage = string.Empty;
+        private Vector2 runScroll;
+        private GUIStyle titleStyle;
+        private GUIStyle tabStyle;
+        private GUIStyle selectedTabStyle;
+        private GUIStyle startStyle;
+        private Texture2D tabTexture;
+        private Texture2D selectedTexture;
+        private Texture2D startTexture;
 
         private void Awake()
         {
             weather ??= FindObjectOfType<WeatherManager>();
             catBreeds ??= FindObjectOfType<CatBreedManager>();
             HubTabs.Active = HubTab.Run;
+            if (GetComponent<HubBackdrop>() == null)
+                gameObject.AddComponent<HubBackdrop>();
         }
 
         private void OnEnable()
@@ -68,15 +79,20 @@ namespace CatCourier.UI
 
         private void OnGUI()
         {
+            EnsureStyles();
+            var width = Screen.width * 0.63f;
+            GUI.Label(new Rect(36f, 25f, width - 230f, 54f), "CAT COURIER", titleStyle);
             DrawCoinTopBar();
             DrawTabBar();
 
-            var area = new Rect(24f, 84f, Screen.width - 48f, Screen.height - 120f);
+            var area = HubLayout.ContentRect;
             GUILayout.BeginArea(area);
             switch (HubTabs.Active)
             {
                 case HubTab.Run:
+                    runScroll = GUILayout.BeginScrollView(runScroll);
                     DrawRunTab();
+                    GUILayout.EndScrollView();
                     break;
                 case HubTab.Upgrades:
                 case HubTab.Cats:
@@ -89,48 +105,36 @@ namespace CatCourier.UI
             DrawFooter();
         }
 
-        private static void DrawCoinTopBar()
+        private void DrawCoinTopBar()
         {
-            var rect = new Rect(16f, 12f, 220f, 56f);
-            GUILayout.BeginArea(rect, GUI.skin.box);
-            GUILayout.Label($"Coins: {SaveSystem.Instance?.TotalCoins ?? 0}");
-            GUILayout.EndArea();
+            var rect = new Rect(Screen.width * 0.63f - 183f, 34f, 150f, 38f);
+            GUI.Box(rect, $"●  {SaveSystem.Instance?.TotalCoins ?? 0} coins", selectedTabStyle);
         }
 
-        private static void DrawTabBar()
+        private void DrawTabBar()
         {
-            var rect = new Rect(Screen.width - 460f, 12f, 444f, 40f);
-            GUILayout.BeginArea(rect);
-            GUILayout.BeginHorizontal();
-            DrawTabButton("Run", HubTab.Run);
-            DrawTabButton("Upgrades", HubTab.Upgrades);
-            DrawTabButton("Cats", HubTab.Cats);
-            DrawTabButton("Leaderboard", HubTab.Leaderboard);
-            GUILayout.EndHorizontal();
-            GUILayout.EndArea();
+            var width = Screen.width * 0.63f - 64f;
+            var tabWidth = (width - 18f) * 0.25f;
+            DrawTabButton(new Rect(32f, 108f, tabWidth, 42f), "Run", HubTab.Run);
+            DrawTabButton(new Rect(38f + tabWidth, 108f, tabWidth, 42f), "Upgrades", HubTab.Upgrades);
+            DrawTabButton(new Rect(44f + tabWidth * 2f, 108f, tabWidth, 42f), "Cats", HubTab.Cats);
+            DrawTabButton(new Rect(50f + tabWidth * 3f, 108f, tabWidth, 42f), "Leaders", HubTab.Leaderboard);
         }
 
-        private static void DrawTabButton(string label, HubTab tab)
+        private void DrawTabButton(Rect rect, string label, HubTab tab)
         {
-            var active = HubTabs.Active == tab;
-            var previous = GUI.backgroundColor;
-            if (active)
-            {
-                GUI.backgroundColor = Color.cyan;
-            }
-
-            if (GUILayout.Button(label, GUILayout.Height(32f)))
+            if (GUI.Button(rect, label, HubTabs.Active == tab ? selectedTabStyle : tabStyle))
             {
                 HubTabs.Active = tab;
                 AudioManager.Instance?.PlaySfx(SfxId.UiTap);
             }
-
-            GUI.backgroundColor = previous;
         }
 
         private void DrawRunTab()
         {
-            if (GUILayout.Button("START RUN", GUILayout.Height(56f)))
+            GUILayout.Label("YOUR NEXT DELIVERY", titleStyle);
+            GUILayout.Space(12f);
+            if (GUILayout.Button("START RUN  →", startStyle, GUILayout.Height(68f)))
             {
                 AudioManager.Instance?.PlaySfx(SfxId.UiTap);
                 GameManager.Instance?.StartRun();
@@ -142,6 +146,7 @@ namespace CatCourier.UI
             }
 
             var nextWeather = weather != null ? weather.NextRunWeather.ToString() : nameof(WeatherType.Clear);
+            GUILayout.Space(16f);
             GUILayout.Label($"Next weather: {nextWeather}");
             DrawDistrictStatus();
             DrawSelectedCat();
@@ -236,7 +241,7 @@ namespace CatCourier.UI
 
         private void DrawFooter()
         {
-            var rect = new Rect(24f, Screen.height - 44f, 520f, 32f);
+            var rect = new Rect(36f, Screen.height - 50f, Screen.width * 0.63f - 72f, 36f);
             GUILayout.BeginArea(rect);
             GUILayout.BeginHorizontal();
             var muted = AudioManager.Instance != null && AudioManager.Instance.IsMuted;
@@ -257,6 +262,44 @@ namespace CatCourier.UI
         private void HandleCatSelectionChanged()
         {
             AudioManager.Instance?.PlaySfx(SfxId.UiTap);
+        }
+
+        private void EnsureStyles()
+        {
+            if (titleStyle != null) return;
+            tabTexture = Solid(new Color(0.12f, 0.18f, 0.21f, 0.96f));
+            selectedTexture = Solid(new Color(0.06f, 0.43f, 0.43f, 0.98f));
+            startTexture = Solid(new Color(0.91f, 0.54f, 0.20f, 1f));
+            titleStyle = new GUIStyle(GUI.skin.label) {
+                fontSize = 32, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft
+            };
+            titleStyle.normal.textColor = new Color(1f, 0.91f, 0.73f);
+            tabStyle = new GUIStyle(GUI.skin.button) {
+                fontSize = 16, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter
+            };
+            tabStyle.normal.background = tabTexture;
+            tabStyle.normal.textColor = Color.white;
+            selectedTabStyle = new GUIStyle(tabStyle);
+            selectedTabStyle.normal.background = selectedTexture;
+            startStyle = new GUIStyle(tabStyle) { fontSize = 22 };
+            startStyle.normal.background = startTexture;
+            startStyle.normal.textColor = new Color(0.15f, 0.12f, 0.08f);
+            GUI.skin.label.normal.textColor = Color.white;
+        }
+
+        private static Texture2D Solid(Color color)
+        {
+            var texture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            texture.SetPixel(0, 0, color);
+            texture.Apply();
+            return texture;
+        }
+
+        private void OnDestroy()
+        {
+            if (tabTexture != null) Destroy(tabTexture);
+            if (selectedTexture != null) Destroy(selectedTexture);
+            if (startTexture != null) Destroy(startTexture);
         }
 
         private void HandleEntitlementsChanged()

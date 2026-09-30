@@ -13,6 +13,8 @@ Open this project in Unity 2022.3.62f3 and wait for sprite import. Then choose *
 - Hit and game-over reactions show three rotating white songbirds. The camera enlarges the cat at run start and at impact, then smoothly widens for the result state.
 - The Game scene uses painted old-town, nature and modern-town blocks, transition art, a shared sky, moving cloud, weather overlays, animated ambient props, coin, and obstacle visuals. Roads are painted on the fallback track while the original physics colliders remain active.
 - HUD, cat selector, result, upgrade and premium screens read their painted icons from the generated art catalog. Prices and other gameplay text remain live Unity UI.
+- The Hub now has a painted courier-square backdrop and its own camera. The Run menu sits on a dark readable panel; the cat remains visible at narrower Game-view aspect ratios.
+- Opening and recurring coins are larger, drawn in the cat's road lane, and use face-on idle frames so they stay visible during the run.
 - The importer slices named sheet grids in top-left frame order and applies transparent Sprite settings. Raw source PNGs stay intact.
 
 ## Current project boundary
