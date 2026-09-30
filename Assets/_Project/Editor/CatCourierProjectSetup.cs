@@ -24,6 +24,30 @@ namespace CatCourier.Editor
         private const string ChunkCatalogPath = "Assets/_Project/Config/ChunkCatalog.asset";
         private const string AudioLibraryPath = "Assets/_Project/Config/AudioLibrary.asset";
 
+        [InitializeOnLoadMethod]
+        private static void ConfigureEditorPlayModeStartScene()
+        {
+            // Unity's PlayMode test runner needs its own empty scene. Forcing
+            // Boot here loads Hub during tests and stalls the command line run.
+            if (Application.isBatchMode ||
+                System.Array.Exists(System.Environment.GetCommandLineArgs(),
+                    argument => argument == "-runTests"))
+            {
+                EditorSceneManager.playModeStartScene = null;
+                return;
+            }
+
+            // Build Settings only choose the first scene for a player build.
+            // In the Editor, Play normally starts from the currently open scene,
+            // which skips Boot when someone is reviewing Game directly.
+            EditorApplication.delayCall += () =>
+            {
+                var boot = AssetDatabase.LoadAssetAtPath<SceneAsset>($"{ScenesPath}/{SceneNames.Boot}.unity");
+                if (boot != null)
+                    EditorSceneManager.playModeStartScene = boot;
+            };
+        }
+
         [MenuItem("Cat Courier/Setup/Create Missing Scenes", priority = 1)]
         public static void EnsureScenes()
         {
@@ -53,6 +77,7 @@ namespace CatCourier.Editor
             EnsureDay6ContentReferences();
             RemoveMissingScripts();
             VerifyDay2Setup();
+            GeneratedArtSetup.Install();
         }
 
         [MenuItem("Cat Courier/Setup/Apply Player Settings", priority = 0)]

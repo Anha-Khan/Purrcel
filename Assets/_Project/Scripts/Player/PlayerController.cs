@@ -36,6 +36,7 @@ namespace CatCourier.Player
         private float slideTimer;
         private float wallBounceTimer;
         private float invincibilityTimer;
+        private float groundSurfaceTop;
         private bool initialized;
 
         public PlayerState State { get; private set; } = PlayerState.Running;
@@ -49,6 +50,7 @@ namespace CatCourier.Player
         public float DistanceMeters => body != null && Application.isPlaying ? body.position.x : transform.position.x;
         public PlayerStats Stats => stats;
         public BoxCollider2D Hitbox => hitbox;
+        public string LastDeathReason { get; private set; }
         public Func<long, int, RunResult> ResultFactory { get; set; }
 
         public event Action OnJump;
@@ -178,6 +180,7 @@ namespace CatCourier.Player
         public void ResetRun()
         {
             State = PlayerState.Running;
+            LastDeathReason = null;
             grounded = false;
             doubleJumpAvailable = false;
             verticalVelocity = 0f;
@@ -340,6 +343,7 @@ namespace CatCourier.Player
 
             if (IsBelowWorld() && !IsInvincible)
             {
+                LastDeathReason = "Below world";
                 TriggerDeath();
                 return;
             }
@@ -366,10 +370,18 @@ namespace CatCourier.Player
 
         public void RequestJump()
         {
-            if (State != PlayerState.Dead && CanAcceptGameplayInput())
+            if (State == PlayerState.Dead || !CanAcceptGameplayInput()) return;
+
+            // Change collision state when the key is pressed. Waiting until the
+            // next FixedUpdate lets an approaching trigger kill the cat first.
+            if (grounded || State == PlayerState.Sliding)
             {
-                jumpBufferTimer = Constants.JUMP_BUFFER_TIME;
+                if (State == PlayerState.Sliding) EndSlide();
+                PerformJump(false);
+                return;
             }
+
+            jumpBufferTimer = Constants.JUMP_BUFFER_TIME;
         }
 
         public void RequestSlide()
@@ -389,6 +401,22 @@ namespace CatCourier.Player
 
             OnSlide?.Invoke();
             UpdateAnimator();
+        }
+
+        public void GrantBoost(float seconds)
+        {
+            if (State == PlayerState.Dead) return;
+            invincibilityTimer = Mathf.Max(invincibilityTimer, Mathf.Max(0f, seconds));
+        }
+
+        public void NotifyPit(Collider2D pit)
+        {
+            if (State == PlayerState.Dead || IsInvincible || pit == null) return;
+            if (hitbox != null && hitbox.bounds.center.x >= pit.bounds.max.x) return;
+            // A pit is crossed only when the entire hitbox is above its lip.
+            if (hitbox != null && hitbox.bounds.min.y > pit.bounds.max.y + 0.08f) return;
+            LastDeathReason = $"Pit at {pit.transform.position.x:0.0}, feet {hitbox?.bounds.min.y:0.00}, lip {pit.bounds.max.y:0.00}, velocity {verticalVelocity:0.0}, state {State}";
+            TriggerDeath();
         }
 
         public void NotifyGround()
@@ -417,6 +445,16 @@ namespace CatCourier.Player
                     ApplyDisplacement(Vector3.right * landingSlide);
                 }
             }
+        }
+
+        public void NotifyGround(Collider2D surface)
+        {
+            if (surface != null)
+            {
+                groundSurfaceTop = surface.bounds.max.y;
+            }
+
+            NotifyGround();
         }
 
         public void NotifyGroundExit()
@@ -460,6 +498,20 @@ namespace CatCourier.Player
 
         public void NotifyObstacle(bool bounce)
         {
+            NotifyObstacle(bounce, null);
+        }
+
+        public void NotifyObstacle(bool bounce, Collider2D obstacle)
+        {
+            // Road hazards are intentionally jumpable. Their trigger boxes often
+            // overlap the cat for a physics step at takeoff, before the feet have
+            // visibly cleared the art. Ignore that contact while rising, then use
+            // the actual bounds on descent so landing into a hazard still hurts.
+            if (!bounce && IsClearingLowRoadObstacle(obstacle))
+            {
+                return;
+            }
+
             scoreManager?.RegisterObstacleContact();
             if (bounce)
             {
@@ -467,8 +519,26 @@ namespace CatCourier.Player
             }
             else
             {
+                LastDeathReason = $"Obstacle {obstacle?.name ?? "unknown"} at {obstacle?.transform.position.x:0.0}";
                 TriggerDeath();
             }
+        }
+
+        private bool IsClearingLowRoadObstacle(Collider2D obstacle)
+        {
+            if (obstacle == null || State != PlayerState.Jumping)
+            {
+                return false;
+            }
+
+            var isLowRoadHazard = obstacle.bounds.max.y <= groundSurfaceTop + 0.75f;
+            if (!isLowRoadHazard)
+            {
+                return false;
+            }
+
+            return verticalVelocity > 0f ||
+                   (hitbox != null && hitbox.bounds.min.y >= obstacle.bounds.max.y - 0.05f);
         }
 
         public void TriggerDeath()
@@ -564,21 +634,26 @@ namespace CatCourier.Player
             var bounce = other.GetComponent<BounceObstacle>();
             var staticObstacle = other.GetComponent<StaticObstacle>();
             var stumble = other.GetComponent<StumbleObstacle>();
+            var pit = other.GetComponent<PitHazard>();
             if (ground != null)
             {
-                NotifyGround();
+                NotifyGround(other);
             }
             else if (bounce != null)
             {
-                NotifyObstacle(true);
+                NotifyObstacle(true, other);
             }
             else if (staticObstacle != null)
             {
-                NotifyObstacle(false);
+                NotifyObstacle(false, other);
             }
             else if (stumble != null)
             {
                 scoreManager?.RegisterObstacleContact();
+            }
+            else if (pit != null)
+            {
+                NotifyPit(other);
             }
         }
 

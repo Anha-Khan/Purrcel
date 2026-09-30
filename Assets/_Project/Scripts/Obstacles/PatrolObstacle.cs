@@ -136,7 +136,7 @@ namespace CatCourier.Obstacles
                 var player = FindPlayer(other);
                 if (player != null)
                 {
-                    player.NotifyObstacle(!isDeadly);
+                    player.NotifyObstacle(!isDeadly, GetComponent<Collider2D>());
                 }
             }
         }

@@ -56,7 +56,7 @@ namespace CatCourier.Monetization
                 return;
             }
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             IsFakeBackend = useFakeBackend;
 #else
             IsFakeBackend = false;
@@ -64,8 +64,8 @@ namespace CatCourier.Monetization
             initializing = true;
             SetState(RevenueCatState.Initializing);
 
-#if UNITY_EDITOR
-            backend = IsFakeBackend ? new FakePurchasesBackend() : new RealPurchasesBackend();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            backend = IsFakeBackend ? (IPurchasesBackend)new FakePurchasesBackend() : new RealPurchasesBackend();
 #else
             backend = new RealPurchasesBackend();
 #endif

@@ -1,3 +1,4 @@
+using CatCourier.Art;
 using CatCourier.Audio;
 using CatCourier.Core;
 using CatCourier.Progression;
@@ -45,6 +46,7 @@ namespace CatCourier.UI
                 var unlocked = catBreeds.IsUnlocked(breed.id);
                 var selected = breed.id == catBreeds.SelectedId;
                 GUILayout.BeginHorizontal();
+                GeneratedUiSprite.Draw(breed.idleSprite, 54f, 54f);
                 GUILayout.Label($"{breed.breedName}", GUILayout.Width(180f));
                 GUILayout.Label($"Speed +{breed.speedBonus:0.0}  Jump +{breed.jumpBonus:0.0}  Coin x{breed.coinBonusMultiplier:0.0}", GUILayout.Width(280f));
 

@@ -178,6 +178,11 @@ namespace CatCourier.UI
         {
             var selected = catBreeds != null ? catBreeds.SelectedId : SaveSystem.Instance?.Data?.selectedCatBreedId;
             GUILayout.Label($"Selected cat: {(string.IsNullOrEmpty(selected) ? "Tabby" : selected)}");
+            if (GUILayout.Button("Choose Cat", GUILayout.Height(34f)))
+            {
+                HubTabs.Active = HubTab.Cats;
+                AudioManager.Instance?.PlaySfx(SfxId.UiTap);
+            }
         }
 
         private void DrawPremiumEntry()

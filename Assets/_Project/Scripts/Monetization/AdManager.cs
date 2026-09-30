@@ -24,7 +24,7 @@ namespace CatCourier.Monetization
     {
         public static AdManager Instance { get; private set; }
 
-        [Tooltip("RevenueCat Ads has no Unity ad-serving SDK (docs/revenuecat-spike.md). The fake backend keeps ad flows usable until a real one exists.")]
+        [Tooltip("Development only: simulate ad completions for local testing. Release builds never grant fake ad rewards.")]
         [SerializeField] private bool useFakeBackend = true;
 
         [Tooltip("Whether premium accounts may see rewarded ads. Unapproved business rule; default keeps 'premium sees no ads' true.")]
@@ -59,10 +59,10 @@ namespace CatCourier.Monetization
 
             Instance = this;
             PersistIfRoot();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (useFakeBackend)
-            {
                 backend = new FakeAdBackend();
-            }
+#endif
         }
 
         private void Update()

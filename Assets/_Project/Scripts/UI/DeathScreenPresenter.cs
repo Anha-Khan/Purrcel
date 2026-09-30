@@ -1,3 +1,4 @@
+using CatCourier.Art;
 using CatCourier.Audio;
 using CatCourier.Core;
 using CatCourier.Monetization;
@@ -58,6 +59,7 @@ namespace CatCourier.UI
             var delivered = result.PackagesDelivered > 0;
             var area = new Rect(Screen.width * 0.5f - 260f, 60f, 520f, Screen.height - 120f);
             GUILayout.BeginArea(area, GUI.skin.box);
+            GeneratedUiSprite.Draw(GeneratedArtCatalog.Frame(GeneratedArtCatalog.Active?.resultsIcons, delivered ? 0 : 2), 72f, 72f);
             GUILayout.Label(delivered ? "DELIVERED" : "WIPED OUT");
             GUILayout.Label($"Score: {result.Score}");
             GUILayout.Label($"Distance: {result.DistanceMeters:0} m");
@@ -110,6 +112,12 @@ namespace CatCourier.UI
             }
 
             GUILayout.Space(6f);
+            if (!ads.HasBackend)
+            {
+                GUILayout.Label("Rewarded ads are not configured in this build.");
+                return;
+            }
+
             GUILayout.Label(rewardGranted ? "Continue reward already used this run." : "Watch an ad for an extra continue.");
             if (!rewardGranted && !ads.IsBusy && GUILayout.Button("Watch Ad", GUILayout.Height(32f)))
             {

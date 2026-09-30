@@ -12,6 +12,8 @@ namespace CatCourier.Core
 
         [Header("Content (authored, optional)")]
         [SerializeField] private Generation.ChunkCatalog chunkCatalog;
+        [SerializeField] private Progression.CatBreedConfig[] generatedCatBreeds;
+        [SerializeField] private CatCourier.Art.GeneratedArtCatalog generatedArtCatalog;
 
         [Header("Audio (authored, optional)")]
         [SerializeField] private Audio.AudioLibrary audioLibrary;
@@ -31,7 +33,10 @@ namespace CatCourier.Core
             EnsureManager<Audio.AudioManager>(transform);
             EnsureManager<Monetization.RevenueCatManager>(transform);
             EnsureManager<Monetization.EntitlementChecker>(transform);
-            EnsureManager<Progression.CatBreedManager>(transform);
+            var breedManager = EnsureManager<Progression.CatBreedManager>(transform);
+            if (generatedCatBreeds != null && generatedCatBreeds.Length > 0)
+                breedManager.SetConfigs(generatedCatBreeds);
+            generatedArtCatalog?.Activate();
             EnsureManager<Progression.UpgradeManager>(transform);
             EnsureManager<Monetization.AdManager>(transform);
             ApplyAudioConfiguration();

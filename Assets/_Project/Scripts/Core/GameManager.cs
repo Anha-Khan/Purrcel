@@ -67,17 +67,6 @@ namespace CatCourier.Core
 
         private void Update()
         {
-            if (IsStartPending)
-            {
-                var revenueCat = Monetization.RevenueCatManager.Instance;
-                if (revenueCat == null || revenueCat.IsReady)
-                {
-                    IsStartPending = false;
-                    StartRun();
-                    return;
-                }
-            }
-
             if (!continuePending)
             {
                 return;
@@ -104,13 +93,9 @@ namespace CatCourier.Core
                 return;
             }
 
-            var revenueCat = Monetization.RevenueCatManager.Instance;
-            if (revenueCat != null && !revenueCat.IsReady)
-            {
-                IsStartPending = true;
-                return;
-            }
-
+            // Store initialization is optional for the core game loop. A slow,
+            // missing, or offline purchase service must never trap the player
+            // on the Hub or prevent a run from starting.
             IsStartPending = false;
 
             Time.timeScale = 1f;

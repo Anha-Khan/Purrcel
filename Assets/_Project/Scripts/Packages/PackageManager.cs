@@ -71,7 +71,7 @@ namespace CatCourier.Packages
                 return false;
             }
         }
-        public PackageType? CurrentPackageType => slots.Count > 0 ? slots[0].Type : null;
+        public PackageType? CurrentPackageType => slots.Count > 0 ? (PackageType?)slots[0].Type : null;
         public PackageState? State
         {
             get
@@ -84,7 +84,7 @@ namespace CatCourier.Packages
                     }
                 }
 
-                return slots.Count > 0 ? slots[0].State : null;
+                return slots.Count > 0 ? (PackageState?)slots[0].State : null;
             }
         }
         public int PackagesDelivered { get; private set; }

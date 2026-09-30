@@ -1,3 +1,4 @@
+using CatCourier.Art;
 using CatCourier.Audio;
 using CatCourier.Core;
 using CatCourier.Progression;
@@ -45,6 +46,8 @@ namespace CatCourier.UI
                 }
 
                 GUILayout.BeginHorizontal();
+                var artIndex = config.id.Contains("jump") ? 0 : config.id.Contains("sprint") || config.id.Contains("speed") ? 1 : 2;
+                GeneratedUiSprite.Draw(GeneratedArtCatalog.Frame(GeneratedArtCatalog.Active?.upgradeIcons, artIndex), 40f, 40f);
                 GUILayout.Label($"{config.upgradeName}  Lv {upgrades.GetLevel(config.id)}/{config.maxLevel}", GUILayout.Width(220f));
                 var cost = upgrades.GetNextCost(config.id);
                 if (cost < 0)

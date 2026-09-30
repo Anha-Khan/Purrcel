@@ -1,3 +1,4 @@
+using CatCourier.Art;
 using System;
 using System.Collections.Generic;
 using CatCourier.Core;
@@ -28,12 +29,17 @@ namespace CatCourier.UI
 
         private void OnEnable()
         {
+            revenueCat ??= FindObjectOfType<RevenueCatManager>();
             PaywallGate.OnRequested += Open;
+            if (revenueCat != null)
+                revenueCat.OnStateChanged += HandleRevenueCatStateChanged;
         }
 
         private void OnDisable()
         {
             PaywallGate.OnRequested -= Open;
+            if (revenueCat != null)
+                revenueCat.OnStateChanged -= HandleRevenueCatStateChanged;
         }
 
         public void Open(PaywallSource requestedSource)
@@ -41,7 +47,11 @@ namespace CatCourier.UI
             source = requestedSource;
             isOpen = true;
             packages.Clear();
-            status = revenueCat != null && revenueCat.IsReady ? "Loading" : "Unavailable";
+            status = revenueCat == null ? "Store service unavailable"
+                : revenueCat.IsReady ? "Loading"
+                : revenueCat.State == RevenueCatState.Failed || revenueCat.State == RevenueCatState.Degraded
+                    ? "Store unavailable. Configure RevenueCat keys and products."
+                    : "Connecting to store";
             OnStateChanged?.Invoke();
             LoadPackages();
         }
@@ -56,9 +66,8 @@ namespace CatCourier.UI
 
         private void LoadPackages()
         {
-            if (revenueCat == null)
+            if (revenueCat == null || !revenueCat.IsReady)
             {
-                status = "Unavailable";
                 return;
             }
 
@@ -72,6 +81,28 @@ namespace CatCourier.UI
             {
                 LoadOffering(RevenueCatIds.OfferingDistricts);
             }
+        }
+
+        private void HandleRevenueCatStateChanged(RevenueCatState state)
+        {
+            if (!isOpen)
+                return;
+
+            if (state == RevenueCatState.Ready)
+            {
+                packages.Clear();
+                status = "Loading";
+                LoadPackages();
+            }
+            else if (state == RevenueCatState.Failed || state == RevenueCatState.Degraded)
+            {
+                status = "Store unavailable. Configure RevenueCat keys and products.";
+            }
+            else
+            {
+                status = "Connecting to store";
+            }
+            OnStateChanged?.Invoke();
         }
 
         private static bool HasPaidBreedContent()
@@ -141,8 +172,13 @@ namespace CatCourier.UI
 
             var rect = new Rect(40f, 40f, 420f, 520f);
             GUILayout.BeginArea(rect, GUI.skin.box);
+            GeneratedUiSprite.Draw(GeneratedArtCatalog.Active?.premiumHero, 110f, 86f);
             GUILayout.Label($"Paywall ({source})");
             GUILayout.Label($"Status: {status}");
+            GUILayout.BeginHorizontal();
+            for (var i = 0; i < 4; i++)
+                GeneratedUiSprite.Draw(GeneratedArtCatalog.Frame(GeneratedArtCatalog.Active?.premiumBenefits, i), 44f, 44f);
+            GUILayout.EndHorizontal();
             if (revenueCat != null && revenueCat.IsFakeBackend)
             {
                 GUILayout.Label("[DEVELOPMENT FAKE DATA]");

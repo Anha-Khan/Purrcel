@@ -30,12 +30,12 @@ Repository: <https://github.com/Anha-Khan/Cat>
 
 ## Status
 
-The game is implemented and verified on Windows in Unity `2022.3.62f3`. All gameplay systems, progression, monetization boundaries, and persistence are complete and covered by tests.
+The game runs in Unity `2022.3.62f3`. The Game scene has a playable fallback route while authored chunk prefabs are being built. Monetization still needs device and account testing.
 
 | Area | State |
 |---|---|
 | Player controller, input, physics | Complete |
-| Procedural generation, chunk catalog, pooling | Complete (empty catalog, see below) |
+| Procedural generation, chunk catalog, pooling | Playable fallback stream; authored catalog empty |
 | Obstacles, weather, packages, checkpoints | Complete |
 | Scoring, combos, difficulty scaling | Complete |
 | Economy, upgrades, cat breeds | Complete |
@@ -45,14 +45,14 @@ The game is implemented and verified on Windows in Unity `2022.3.62f3`. All game
 | UI presenters (hub, HUD, pause, death) | Complete (IMGUI placeholders) |
 | Persistence with atomic writes and recovery | Complete |
 
-Verification: **79/79 EditMode tests**, **17/17 PlayMode tests**, cold-import run passing, Android development build with 0 compile errors and 0 warnings, secret scan clean across the authored tree.
+Latest macOS editor verification: **79/79 EditMode tests** and **26/26 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards and verifies that coins are collected. An earlier Windows Android development build passed; this art and gameplay update has not been rebuilt for Android.
 
 ## What is not finished yet
 
 These are content and account gates, not code defects. Nothing in this repository claims otherwise:
 
-- **Authored chunk prefabs.** `ChunkCatalog.asset` is empty, so procedural generation safely falls back to a flat test track. The game is playable but has no real district geometry.
-- **Art.** Player, cat, chunk, and UI visuals are functional placeholders. The UI is IMGUI-based and is not a shipping interface.
+- **Authored chunk prefabs.** `ChunkCatalog.asset` is empty. The fallback route now streams varied jump, slide, falling and pit hazards with coins, special coins and a shield booster. Its pit is a painted road opening with a gameplay trigger over continuous collision ground; authored gap geometry still needs work.
+- **Art and UI polish.** Five painted cats, districts, roads and gameplay objects are integrated. Some menus still use IMGUI and need final layout and device review.
 - **Audio clips and mixer.** The audio system is fully wired and silent-safe, but no clip assets exist yet.
 - **A real ad SDK.** Only a deterministic fake backend ships. Ad serving is a provider decision; see [Economy and monetization](#economy-and-monetization).
 - **Real RevenueCat sandbox purchases, restore, and trial metadata.** These require local public sandbox keys and a physical device.
@@ -259,7 +259,7 @@ Writes are atomic: serialize to a temporary file, validate it can be read back, 
 
 1. Open **Window > General > Test Runner**.
 2. Select **EditMode**, run all — 79 tests.
-3. Select **PlayMode**, run all — 17 tests.
+3. Select **PlayMode**, run all — 26 tests.
 
 The PlayMode suite proves save-path isolation by snapshotting `Application.persistentDataPath` and failing if it changes.
 

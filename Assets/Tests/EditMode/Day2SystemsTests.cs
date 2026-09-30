@@ -293,6 +293,7 @@ namespace CatCourier.Tests
         [Test]
         public void DeathDelay_CannotBePausedByUiButton()
         {
+            Time.timeScale = 1f;
             var managerHost = new GameObject("DeathPauseManagerDay2Test");
             var playerHost = CreatePlayer(out var player);
             try
