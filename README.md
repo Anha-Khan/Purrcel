@@ -228,7 +228,7 @@ Precedence is free 1× / premium 2×, then the upgrade multiplier, then the bree
 
 | Entitlement | Grants |
 |---|---|
-| `premium` | 2× coins, no interstitials, 3 continues per run, all districts and premium cats |
+| `purrcel_pro` | 2× coins, no interstitials, 3 continues per run, all districts and premium cats |
 | `rare_breeds_pack` | Scottish Fold, Sphynx, Munchkin |
 | `legendary_cats_pack` | Manx, Turkish Van, Lykoi |
 | `harbour_district` | Harbour district |

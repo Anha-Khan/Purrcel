@@ -2,15 +2,11 @@
 
 This is the student-only Next Gen route. It does not require an app-store release, but the submitted game must work, demonstrate a purchase through the RevenueCat SDK, and include a public open-source repository and a device video. A Unity Editor purchase using `FakePurchasesBackend` is only a local simulation and is not the RevenueCat demonstration.
 
-## 1. Create the RevenueCat Test Store purchase
+## 1. RevenueCat Test Store purchase
 
-1. Create a RevenueCat project at [RevenueCat](https://app.revenuecat.com/). Its Test Store is created with the project; if it is absent, create one under **Apps and providers → Test configuration**.
-2. Under **Product catalog → Entitlements**, create the identifier **`premium`**.
-3. Under **Product catalog → Products**, create a Test Store monthly subscription (for example, product ID `catcourier_premium_monthly`). Attach it to `premium`. Choose the price and trial deliberately; the game displays the price and trial metadata supplied by RevenueCat.
-4. Under **Product catalog → Offerings**, create an offering with identifier **`default`**. Add a monthly package with RevenueCat identifier **`$rc_monthly`**, and attach the Test Store product. Make this the default offering.
-5. Copy the **Test Store public API key** from **Project settings → API keys**. Do not use a secret API key or put the key into source files.
+The Purrcel RevenueCat project already has a Test Store monthly product (`monthly`) attached to entitlement **`purrcel_pro`**. The default offering contains that product in package **`$rc_monthly`**. The development Test Store public key is saved only in the local, ignored Unity config asset. Do not use a secret API key or put this key into source files.
 
-The only purchase required for this demo is the monthly package above. `iap_breeds` and `iap_districts` are optional and their unfinished content stays hidden. The game requires the `premium` entitlement to unlock premium behavior after a successful test purchase.
+The only purchase required for this demo is the monthly package above. `iap_breeds` and `iap_districts` are optional and their unfinished content stays hidden. The game requires the `purrcel_pro` entitlement to unlock premium behavior after a successful test purchase.
 
 ## 2. Configure and build the Unity project
 
@@ -25,9 +21,9 @@ Test Store keys only work in debuggable development builds. Never upload a build
 
 ## 3. Verify the actual SDK purchase
 
-On the phone, open Purrcel, tap **Go Premium**, and confirm the live monthly price appears with no **DEVELOPMENT FAKE DATA** banner. Tap **Buy** and choose the Test Store success action. Confirm the paywall reports success, the hub says premium is active, and the `premium` entitlement appears for the customer in the RevenueCat dashboard as a sandbox transaction. Restart the app and use **Restore Purchases** to check that access returns. Record this sequence for the demo.
+On the phone, open Purrcel, tap **Go Premium**, and confirm the live monthly price appears with no **DEVELOPMENT FAKE DATA** banner. Tap **Buy** and choose the Test Store success action. Confirm the paywall reports success, the hub says premium is active, and the `purrcel_pro` entitlement appears for the customer in the RevenueCat dashboard as a sandbox transaction. Restart the app and use **Restore Purchases** to check that access returns. Record this sequence for the demo.
 
-If the paywall says “Store unavailable,” check the key, `default` offering, `$rc_monthly` package, product attachment, phone internet connection, and Unity Console/Android logcat. If the purchase succeeds but premium stays locked, check the product's `premium` entitlement attachment.
+If the paywall says “Store unavailable,” check the key, `default` offering, `$rc_monthly` package, product attachment, phone internet connection, and Unity Console/Android logcat. If the purchase succeeds but premium stays locked, check the product's `purrcel_pro` entitlement attachment.
 
 ## 4. Next Gen submission materials
 

@@ -48,7 +48,7 @@ namespace CatCourier.Tests
             Assert.That(Constants.SHAKE_LAND_DURATION, Is.EqualTo(0.1f));
             Assert.That(Constants.SHAKE_DEATH_MAGNITUDE, Is.EqualTo(0.3f));
             Assert.That(Constants.SHAKE_DEATH_DURATION, Is.EqualTo(0.4f));
-            Assert.That(Constants.ENTITLEMENT_PREMIUM, Is.EqualTo("premium"));
+            Assert.That(Constants.ENTITLEMENT_PREMIUM, Is.EqualTo("purrcel_pro"));
             Assert.That(Constants.ENTITLEMENT_RARE_PACK, Is.EqualTo("rare_breeds_pack"));
             Assert.That(Constants.ENTITLEMENT_LEGEND_PACK, Is.EqualTo("legendary_cats_pack"));
             Assert.That(Constants.ENTITLEMENT_HARBOUR, Is.EqualTo("harbour_district"));
