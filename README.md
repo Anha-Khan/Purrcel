@@ -2,6 +2,8 @@
 
 Cat Courier is a landscape 2D endless runner built with Unity 2022.3 LTS, C#, URP, and RevenueCat. A delivery cat auto-runs across procedurally assembled rooftops, collects coins, carries packages, avoids obstacles, survives weather and district changes, and spends earned coins on upgrades and cat breeds between runs.
 
+**Shipaton Next Gen Android demo:** follow [NEXT-GEN-SUBMISSION.md](NEXT-GEN-SUBMISSION.md) to configure a real RevenueCat Test Store purchase on a development APK and prepare the student submission. Editor purchases are simulated and do not demonstrate the RevenueCat SDK.
+
 Repository: <https://github.com/Anha-Khan/Cat>
 
 ---
@@ -89,7 +91,7 @@ Project configuration: Linear color space, IL2CPP scripting backend, .NET Standa
 2. Clone or download this repository and open the folder with that editor version.
 3. Allow package import to finish.
 4. Run **`Cat Courier > Setup > Apply All`**. It is idempotent and creates or repairs scenes, URP settings, the chunk catalog, the audio library, and a local RevenueCat config asset. On a fresh clone this first run also performs the initial import and compile that every later step depends on.
-5. Enter RevenueCat Android/iOS **public sandbox keys** in `Assets/_Project/Config/RevenueCatConfig.asset`. This file is gitignored — never commit it.
+5. Enter a RevenueCat **Test Store public key** for the Android Next Gen development demo, or platform sandbox keys for store testing, in `Assets/_Project/Config/RevenueCatConfig.asset`. This file is gitignored — never commit it.
 6. Run **`Cat Courier > Validate > Release Readiness`** to print a PASS/WARN/BLOCKER report describing exactly what content is still missing.
 7. Open `Assets/_Project/Scenes/Boot.unity` and enter Play mode.
 
@@ -258,7 +260,7 @@ Writes are atomic: serialize to a temporary file, validate it can be read back, 
 ### Unity Test Runner
 
 1. Open **Window > General > Test Runner**.
-2. Select **EditMode**, run all — 79 tests.
+2. Select **EditMode**, run all — 80 tests.
 3. Select **PlayMode**, run all — 28 tests.
 
 The PlayMode suite proves save-path isolation by snapshotting `Application.persistentDataPath` and failing if it changes.
@@ -285,6 +287,8 @@ The secret scanner never prints a matched value — only the path, line, rule, a
 3. The APK is written to `Builds/Android/CatCourier.apk`.
 
 Package `com.catcourier.game`, version `0.1.0`, min SDK 24, target SDK 33, ARMv7 + ARM64. Build artifacts are gitignored; attach the APK as a release asset rather than committing it. This is a development build, which is also why the fake monetization backend is the default in it.
+
+For the Next Gen Android demo, use **Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo**, enter a Test Store public key, then **Cat Courier > Build > Android Next Gen Demo APK**. This path blocks an APK with fake purchases or a missing key.
 
 ### iOS
 

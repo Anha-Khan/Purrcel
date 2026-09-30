@@ -5,12 +5,43 @@ using System.Reflection;
 using CatCourier.Core;
 using CatCourier.Monetization;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace CatCourier.Tests
 {
     public sealed class RevenueCatDay4Tests
     {
+        [Test]
+        public void AndroidDemo_RequiresRealBackendAndKey_AndProductionIgnoresTestStore()
+        {
+            var config = ScriptableObject.CreateInstance<RevenueCatConfig>();
+            try
+            {
+                var serialized = new SerializedObject(config);
+                serialized.FindProperty("developmentTestStorePublicKey").stringValue = "test_demo_key";
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Assert.That(config.IsAndroidDemoReady, Is.False);
+
+                serialized.Update();
+                serialized.FindProperty("backend").enumValueIndex = (int)RevenueCatBackendSelection.Real;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Assert.That(config.IsAndroidDemoReady, Is.True);
+                Assert.That(config.ApplePublicKey, Is.EqualTo("test_demo_key"));
+                Assert.That(config.GooglePublicKey, Is.EqualTo("test_demo_key"));
+
+                serialized.Update();
+                serialized.FindProperty("environment").enumValueIndex = (int)RevenueCatEnvironment.Production;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Assert.That(config.IsAndroidDemoReady, Is.False);
+                Assert.That(config.GooglePublicKey, Is.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(config);
+            }
+        }
+
         [Test]
         public void FakeBackend_ReturnsAllOfferingsAndPackages()
         {

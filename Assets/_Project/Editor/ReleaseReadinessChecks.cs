@@ -650,7 +650,7 @@ namespace CatCourier.Editor
                 {
                     report.Add(SecretCheck, ReleaseSeverity.Warn,
                         "RevenueCatConfig uses the fake backend in sandbox mode.",
-                        "Fine for device testing, but purchases are simulated; say so in the README and Devpost.");
+                        "Purchases are simulated. Select the real backend for the Next Gen Android demo.");
                 }
                 else
                 {
@@ -662,13 +662,20 @@ namespace CatCourier.Editor
                 {
                     report.Add(SecretCheck, ReleaseSeverity.Warn,
                         "RevenueCatConfig has no public keys entered yet.",
-                        "Enter sandbox keys locally. Key values are never read into the report.");
+                        "Enter a Test Store or platform sandbox key locally. Key values are never read into the report.");
                 }
                 else
                 {
                     report.Add(SecretCheck, ReleaseSeverity.Pass,
-                        $"RevenueCatConfig has {keys} of 4 public key fields filled in (values never read or logged).");
+                        $"RevenueCatConfig has {keys} of 5 public key fields filled in (values never read or logged).");
                 }
+
+                if (config.IsAndroidDemoReady)
+                    report.Add(SecretCheck, ReleaseSeverity.Pass, "Android Next Gen demo can use the real RevenueCat SDK.");
+                else
+                    report.Add(SecretCheck, ReleaseSeverity.Warn,
+                        "Android Next Gen demo is not configured for a real RevenueCat test purchase.",
+                        "Use Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo and enter a Test Store public key locally.");
             }
 
             if (File.Exists(Path.Combine(root, "LICENSE")))
@@ -908,7 +915,7 @@ namespace CatCourier.Editor
             var filled = 0;
             foreach (var field in new[]
                      {
-                         "developmentApplePublicKey", "developmentGooglePublicKey",
+                         "developmentApplePublicKey", "developmentGooglePublicKey", "developmentTestStorePublicKey",
                          "productionApplePublicKey", "productionGooglePublicKey"
                      })
             {

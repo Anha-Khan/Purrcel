@@ -22,6 +22,8 @@ namespace CatCourier.Monetization
         [SerializeField] private RevenueCatBackendSelection backend = RevenueCatBackendSelection.Fake;
         [SerializeField] private string developmentApplePublicKey;
         [SerializeField] private string developmentGooglePublicKey;
+        [Tooltip("RevenueCat Test Store key for internal Android/iOS development builds. Never use it in a release build.")]
+        [SerializeField] private string developmentTestStorePublicKey;
         [SerializeField] private string productionApplePublicKey;
         [SerializeField] private string productionGooglePublicKey;
 
@@ -30,6 +32,10 @@ namespace CatCourier.Monetization
         public string ApplePublicKey => SelectKey(developmentApplePublicKey, productionApplePublicKey);
         public string GooglePublicKey => SelectKey(developmentGooglePublicKey, productionGooglePublicKey);
         public bool IsProduction => environment == RevenueCatEnvironment.Production;
+        public bool IsAndroidDemoReady => environment == RevenueCatEnvironment.DevelopmentSandbox &&
+                                          backend == RevenueCatBackendSelection.Real &&
+                                          (!string.IsNullOrWhiteSpace(developmentTestStorePublicKey) ||
+                                           !string.IsNullOrWhiteSpace(developmentGooglePublicKey));
 
         public string GetPublicKey()
         {
@@ -44,7 +50,11 @@ namespace CatCourier.Monetization
 
         public bool ShouldUseFakeBackend()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
+            // RevenueCat's Unity SDK cannot run in the Editor; keep Play mode usable
+            // even while the device demo is configured for the real backend.
+            return true;
+#elif DEVELOPMENT_BUILD
             return backend == RevenueCatBackendSelection.Fake;
 #else
             return false;
@@ -62,7 +72,20 @@ namespace CatCourier.Monetization
 
         private string SelectKey(string developmentKey, string productionKey)
         {
-            return environment == RevenueCatEnvironment.Production ? productionKey : developmentKey;
+            if (environment == RevenueCatEnvironment.Production)
+            {
+                return productionKey;
+            }
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            // Test Store works with the real RevenueCat SDK on a device, without store products.
+            // It must never leak into a non-development build: the SDK rejects Test Store keys there.
+            return !string.IsNullOrWhiteSpace(developmentTestStorePublicKey)
+                ? developmentTestStorePublicKey
+                : developmentKey;
+#else
+            return developmentKey;
+#endif
         }
     }
 }

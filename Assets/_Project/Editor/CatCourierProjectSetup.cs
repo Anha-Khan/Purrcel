@@ -728,6 +728,33 @@ namespace CatCourier.Editor
             AssetDatabase.SaveAssets();
         }
 
+        [MenuItem("Cat Courier/Setup/Use Real RevenueCat for Next Gen Demo", priority = 12)]
+        public static void PrepareNextGenDemo()
+        {
+            EnsureRevenueCatConfig();
+            var config = AssetDatabase.LoadAssetAtPath<RevenueCatConfig>(RevenueCatConfigPath);
+            var serialized = new SerializedObject(config);
+            serialized.FindProperty("environment").enumValueIndex = (int)RevenueCatEnvironment.DevelopmentSandbox;
+            serialized.FindProperty("backend").enumValueIndex = (int)RevenueCatBackendSelection.Real;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+            Selection.activeObject = config;
+            Debug.Log("Real RevenueCat selected for the Android development demo. Enter the Test Store public key in the selected local config asset, then use Cat Courier > Build > Android Next Gen Demo APK.");
+        }
+
+        [MenuItem("Cat Courier/Build/Android Next Gen Demo APK")]
+        public static void BuildAndroidNextGenDemo()
+        {
+            var config = AssetDatabase.LoadAssetAtPath<RevenueCatConfig>(RevenueCatConfigPath);
+            if (config == null || !config.IsAndroidDemoReady)
+            {
+                throw new BuildFailedException("Next Gen demo requires sandbox mode, the real RevenueCat backend, and a Test Store or Google sandbox public key. Run Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo, then enter the key in the selected local config asset.");
+            }
+
+            BuildAndroid();
+        }
+
         /// <summary>
         /// Strips MonoBehaviours whose script was deleted, so removing a component class never leaves
         /// a missing script behind in a saved scene or prefab.
