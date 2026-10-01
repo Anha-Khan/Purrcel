@@ -25,7 +25,7 @@
 - Day 6 remaining blockers, all content or account side, confirmed by `Cat Courier > Validate > Release Readiness`: `ChunkCatalog.asset` is empty, Harbour and Suburbs have no authored chunks, and there are no `AudioClip` or `AudioMixer` assets. The `CatBreedConfig` blocker is resolved: the generated art installer now creates five breed assets. Code paths for the rest are wired and safe when empty.
 - Day 6 checks that cannot be automated here: Android and iOS device runs, real RevenueCat sandbox purchase/restore/trials, touch and animation-visibility feel, and representative-hardware frame pacing.
 - Day 6 PlayMode suite stubs scene loading, so real Hub and Game scene wiring plus `RunCoordinator` serialized references are verified by manual play only. `GameScenePlayabilityTests` and `GeneratedCatArtTests` are the exceptions: they load the real scenes additively, so they inherit the harness save-path guard.
-- `Next Gen` submission blockers: the `harbour_unlock` and `suburbs_unlock` packs unlock districts that already unlock free at 600 m and 1200 m. The reach gates are now single-sourced in `RunLoadoutService`, and the packs must grant an additive bonus; the bonus constants are declared but not yet wired into the coin pipeline.
+- `Next Gen` submission blockers: resolved. The `harbour_unlock` and `suburbs_unlock` packs used to unlock districts that already unlock free at 600 m and 1200 m. The reach gates are single-sourced in `RunLoadoutService`, and each pack now grants a 1.25x coin multiplier while the run is in its own district, applied by `RunCoordinator` on district change and on entitlement change.
 
 ## Done hand-offs
 

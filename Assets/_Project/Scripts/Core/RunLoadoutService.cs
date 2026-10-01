@@ -43,6 +43,27 @@ namespace CatCourier.Core
         public const float HarbourPackCoinBonus = 1.25f;
         public const float SuburbsPackCoinBonus = 1.25f;
 
+        /// <summary>
+        /// The coin multiplier the district packs grant while running in that district.
+        /// Returns 1 for the free districts and for a pack the player does not own, so a
+        /// missing entitlement can never reduce or inflate the payout.
+        /// </summary>
+        public static float DistrictCoinBonus(DistrictId district)
+        {
+            var entitlements = Monetization.EntitlementChecker.Instance;
+            if (entitlements == null)
+            {
+                return 1f;
+            }
+
+            return district switch
+            {
+                DistrictId.Harbour => entitlements.HasDistrict(DistrictId.Harbour) ? HarbourPackCoinBonus : 1f,
+                DistrictId.Suburbs => entitlements.HasDistrict(DistrictId.Suburbs) ? SuburbsPackCoinBonus : 1f,
+                _ => 1f
+            };
+        }
+
         public static RunLoadout Build()
         {
             var upgradeManager = UnityEngine.Object.FindObjectOfType<UpgradeManager>();

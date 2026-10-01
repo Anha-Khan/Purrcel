@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.IO;
 using CatCourier.Core;
@@ -144,6 +145,45 @@ namespace CatCourier.Tests.PlayMode
             game.AbandonRun();
             Assert.That(save.Data.totalCoins, Is.EqualTo(12));
             Assert.That(save.Data.totalRunsCompleted, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator DistrictPackBonus_FollowsTheDistrictAndAPurchaseMidRun()
+        {
+            CreateTempSaveSystem();
+            var entitlementHost = Track(new GameObject("DistrictEntitlementHost"));
+            var entitlement = entitlementHost.AddComponent<EntitlementChecker>();
+            SetStaticInstance(typeof(EntitlementChecker), "Instance", entitlement);
+
+            var game = CreateGameManager(out _);
+            var player = CreatePlayer("DistrictBonusPlayer");
+            var coins = player.gameObject.AddComponent<CatCourier.Coins.CoinManager>();
+            player.gameObject.AddComponent<CatCourier.Scoring.ScoreManager>();
+            coins.Configure(1f, 1f, 1f, 0f);
+            CreateRunCoordinator();
+            yield return null;
+
+            game.StartRun();
+            Assert.That(coins.DistrictMultiplier, Is.EqualTo(1f), "A run starts in a free district.");
+
+            // Buying the pack must not pay out while the run is still in a free
+            // district; the bonus belongs to Harbour only.
+            entitlement.SetEntitlements(new[] { Constants.ENTITLEMENT_HARBOUR });
+            yield return null;
+            Assert.That(coins.FinalMultiplier, Is.EqualTo(1f).Within(0.001f),
+                "Harbour's bonus must not leak into a run that is still in Old Town.");
+
+            var inHarbour = RunLoadoutService.DistrictCoinBonus(DistrictId.Harbour);
+            Assert.That(inHarbour, Is.EqualTo(RunLoadoutService.HarbourPackCoinBonus));
+            coins.SetDistrictMultiplier(inHarbour);
+            Assert.That(coins.FinalMultiplier, Is.EqualTo(RunLoadoutService.HarbourPackCoinBonus).Within(0.001f));
+
+            // Losing the entitlement removes the bonus again.
+            entitlement.SetEntitlements(Array.Empty<string>());
+            yield return null;
+            coins.SetDistrictMultiplier(RunLoadoutService.DistrictCoinBonus(DistrictId.Harbour));
+            Assert.That(coins.FinalMultiplier, Is.EqualTo(1f),
+                "A lapsed pack must not keep paying out.");
         }
 
         [UnityTest]

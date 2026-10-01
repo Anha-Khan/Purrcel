@@ -23,6 +23,7 @@ namespace CatCourier.Core
 
         private RunLoadout loadout;
         private bool started;
+        private bool entitlementSubscribed;
 
         public DistrictId CurrentDistrict => chunkManager?.CurrentDistrict ?? DistrictId.OldTown;
         public RunLoadout Loadout => loadout;
@@ -69,6 +70,31 @@ namespace CatCourier.Core
 
             ConfigureChunkManager();
             UpdateDistrictUnlocks();
+            // After ConfigureRunStats, which resets the per-run coin state.
+            ApplyDistrictCoinBonus();
+            SubscribeToEntitlements();
+        }
+
+        /// <summary>
+        /// A district pack bought mid-run, e.g. from the paywall, must take effect
+        /// without waiting for the next run.
+        /// </summary>
+        private void SubscribeToEntitlements()
+        {
+            if (entitlementSubscribed || Monetization.EntitlementChecker.Instance == null)
+            {
+                return;
+            }
+
+            Monetization.EntitlementChecker.Instance.OnEntitlementsChanged -= HandleEntitlementsChanged;
+            Monetization.EntitlementChecker.Instance.OnEntitlementsChanged += HandleEntitlementsChanged;
+            entitlementSubscribed = true;
+        }
+
+        private void HandleEntitlementsChanged()
+        {
+            loadout = RunLoadoutService.Build();
+            ApplyDistrictCoinBonus();
         }
 
         private void Update()
@@ -109,6 +135,8 @@ namespace CatCourier.Core
             chunkManager.SetUnlockedDistricts(DistrictUnlockService.GetEligible(player != null ? player.DistanceMeters : 0f, loadout?.IsPremium == true));
             chunkManager.OnCheckpointReached -= HandleCheckpointReached;
             chunkManager.OnCheckpointReached += HandleCheckpointReached;
+            chunkManager.OnDistrictChanged -= HandleDistrictChanged;
+            chunkManager.OnDistrictChanged += HandleDistrictChanged;
             if (packages != null)
             {
                 packages.OnDeliveryScorePulseRequested -= HandleDeliveryScorePulse;
@@ -150,6 +178,13 @@ namespace CatCourier.Core
             score?.SetDeliveryPulse(multiplier, duration);
         }
 
+        private void HandleDistrictChanged(DistrictId district)
+        {
+            // The district unlock packs grant a coin bonus in their own district, so the
+            // multiplier has to follow the district as the run moves.
+            ApplyDistrictCoinBonus();
+        }
+
         private void UpdateDistrictUnlocks()
         {
             var distance = player != null ? player.DistanceMeters : 0f;
@@ -157,6 +192,11 @@ namespace CatCourier.Core
             {
                 chunkManager.SetUnlockedDistricts(DistrictUnlockService.GetEligible(distance, loadout?.IsPremium == true));
             }
+        }
+
+        private void ApplyDistrictCoinBonus()
+        {
+            coins?.SetDistrictMultiplier(RunLoadoutService.DistrictCoinBonus(CurrentDistrict));
         }
 
         private RunResult BuildResult(long scoreValue, int coinsCollected)
@@ -196,9 +236,16 @@ namespace CatCourier.Core
                 Active = null;
             }
 
+            if (entitlementSubscribed && Monetization.EntitlementChecker.Instance != null)
+            {
+                Monetization.EntitlementChecker.Instance.OnEntitlementsChanged -= HandleEntitlementsChanged;
+                entitlementSubscribed = false;
+            }
+
             if (chunkManager != null)
             {
                 chunkManager.OnCheckpointReached -= HandleCheckpointReached;
+                chunkManager.OnDistrictChanged -= HandleDistrictChanged;
             }
 
             if (packages != null)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using CatCourier.Audio;
+using CatCourier.Coins;
 using CatCourier.Core;
 using CatCourier.Monetization;
 using CatCourier.Player;
@@ -396,6 +397,74 @@ namespace CatCourier.Tests
             Assert.That(RunLoadoutService.HarbourPackCoinBonus, Is.GreaterThan(1f),
                 "A pack whose district already unlocks free needs a bonus to be worth buying.");
             Assert.That(RunLoadoutService.SuburbsPackCoinBonus, Is.GreaterThan(1f));
+        }
+
+        [Test]
+        public void DistrictPackCoinBonus_OnlyAppliesToAnOwnedPack()
+        {
+            entitlementHost = new GameObject("EntitlementDistrictBonusDay5Test");
+            var entitlement = entitlementHost.AddComponent<EntitlementChecker>();
+            SetStaticInstance(typeof(EntitlementChecker), entitlement);
+
+            // Nothing owned: no district may pay a bonus, free or paid.
+            entitlement.SetEntitlements(Array.Empty<string>());
+            foreach (DistrictId district in Enum.GetValues(typeof(DistrictId)))
+            {
+                Assert.That(RunLoadoutService.DistrictCoinBonus(district), Is.EqualTo(1f),
+                    $"{district} must not pay a bonus the player has not bought.");
+            }
+
+            // Harbour owned: only Harbour pays.
+            entitlement.SetEntitlements(new[] { Constants.ENTITLEMENT_HARBOUR });
+            Assert.That(RunLoadoutService.DistrictCoinBonus(DistrictId.Harbour),
+                Is.EqualTo(RunLoadoutService.HarbourPackCoinBonus));
+            Assert.That(RunLoadoutService.DistrictCoinBonus(DistrictId.Suburbs), Is.EqualTo(1f));
+            Assert.That(RunLoadoutService.DistrictCoinBonus(DistrictId.OldTown), Is.EqualTo(1f));
+            Assert.That(RunLoadoutService.DistrictCoinBonus(DistrictId.Downtown), Is.EqualTo(1f));
+
+            // Suburbs owned as well: both paid districts pay, free ones still do not.
+            entitlement.SetEntitlements(new[] { Constants.ENTITLEMENT_HARBOUR, Constants.ENTITLEMENT_SUBURBS });
+            Assert.That(RunLoadoutService.DistrictCoinBonus(DistrictId.Suburbs),
+                Is.EqualTo(RunLoadoutService.SuburbsPackCoinBonus));
+            Assert.That(RunLoadoutService.DistrictCoinBonus(DistrictId.OldTown), Is.EqualTo(1f));
+
+            // Premium does not imply the district packs; they are separate SKUs.
+            entitlement.SetEntitlements(new[] { Constants.ENTITLEMENT_PREMIUM });
+            Assert.That(RunLoadoutService.DistrictCoinBonus(DistrictId.Harbour), Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void DistrictPackCoinBonus_ReachesTheCoinPayout()
+        {
+            entitlementHost = new GameObject("EntitlementCoinPayoutDay5Test");
+            var entitlement = entitlementHost.AddComponent<EntitlementChecker>();
+            SetStaticInstance(typeof(EntitlementChecker), entitlement);
+            entitlement.SetEntitlements(new[] { Constants.ENTITLEMENT_HARBOUR });
+
+            var host = new GameObject("DistrictBonusPayoutDay5Test");
+            try
+            {
+                var coinManager = host.AddComponent<CoinManager>();
+                coinManager.Configure(1f, 1f, 1f, 0f);
+                coinManager.ResetRun();
+
+                Assert.That(coinManager.FinalMultiplier, Is.EqualTo(1f), "No district bonus before entering one.");
+                coinManager.SetDistrictMultiplier(RunLoadoutService.DistrictCoinBonus(DistrictId.Harbour));
+                Assert.That(coinManager.FinalMultiplier,
+                    Is.EqualTo(RunLoadoutService.HarbourPackCoinBonus).Within(0.001f));
+
+                var awarded = coinManager.Collect(Constants.COIN_BASE_VALUE);
+                Assert.That(awarded, Is.EqualTo(Mathf.RoundToInt(Constants.COIN_BASE_VALUE * RunLoadoutService.HarbourPackCoinBonus)),
+                    "The pack bonus must reach the coins the player actually collects.");
+
+                // Leaving the district removes it again.
+                coinManager.SetDistrictMultiplier(RunLoadoutService.DistrictCoinBonus(DistrictId.OldTown));
+                Assert.That(coinManager.FinalMultiplier, Is.EqualTo(1f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
         }
 
         [Test]
