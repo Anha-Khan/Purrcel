@@ -152,7 +152,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   useFakeMonetizationInEditor: 1
-  revenueCatConfig: {fileID: 11400000, guid: 17271898f738da14ba1d54c39cabe6ad, type: 2}
+  revenueCatConfig: {fileID: 11400000, guid: ab5c96ebd275e5d4980ecbc085ba4100, type: 2}
   chunkCatalog: {fileID: 11400000, guid: bcca9ac00f4f1d641bb96b98930d98fd, type: 2}
   generatedCatBreeds:
   - {fileID: 11400000, guid: 27b7832001e4d40a0b283e569142c9e5, type: 2}

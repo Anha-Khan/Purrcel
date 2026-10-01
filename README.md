@@ -47,7 +47,9 @@ The game runs in Unity `2022.3.62f3`. The Game scene has a playable fallback rou
 | UI presenters (hub, HUD, pause, death) | Complete (IMGUI placeholders) |
 | Persistence with atomic writes and recovery | Complete |
 
-Latest Windows editor verification: **150/150 EditMode tests** and **31/31 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, checks that the Hub has a painted camera view, and proves an abandoned run still banks its coins. An earlier Windows Android development build passed; this art and gameplay update has not been rebuilt for Android.
+Latest Windows editor verification: **150/150 EditMode tests** and **31/31 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, checks that the Hub has a painted camera view, and proves an abandoned run still banks its coins.
+
+Latest Android development build: **succeeded**, 0 compiler errors and 0 warnings, IL2CPP for ARMv7 + ARM64, target SDK 34. This is the first Android build covering the generated art and the current gameplay, so it supersedes the earlier pre-art APK. It has **not** yet been run on a device.
 
 ## What is not finished yet
 
@@ -58,7 +60,7 @@ These are content and account gates, not code defects. Nothing in this repositor
 - **Audio clips and mixer.** The audio system is fully wired and silent-safe, but no clip assets exist yet.
 - **A real ad SDK.** Only a deterministic fake backend ships. Ad serving is a provider decision; see [Economy and monetization](#economy-and-monetization).
 - **Real RevenueCat purchases, restore, and trial metadata.** `RealPurchasesBackend` is written and compiles, but it is compiled out in every environment a test can reach and has never executed. Only a device can prove it. Use a Test Store key; see [NEXT-GEN-SUBMISSION.md](NEXT-GEN-SUBMISSION.md).
-- **Device-level verification** of touch feel, animation visibility, and frame pacing. iOS export requires macOS with Xcode.
+- **Device-level verification** of touch feel, animation visibility, safe-area layout on a notched phone, and frame pacing. A development APK for the current build now exists; none of this has been checked on hardware. iOS export requires macOS with Xcode.
 
 Unfinished paid content is never sold. Breed packs and district packs stay hidden from the paywall until real content and matching entitlements exist, and Harbour and Suburbs remain locked until chunk content is registered. The in-game hub labels them accordingly.
 
@@ -288,7 +290,7 @@ The secret scanner never prints a matched value — only the path, line, rule, a
 2. Run **`Cat Courier > Build > Build Android (Development)`**.
 3. The APK is written to `Builds/Android/CatCourier.apk`.
 
-Package `com.catcourier.game`, version `0.1.0`, min SDK 24, target SDK 34, ARMv7 + ARM64. Build artifacts are gitignored; attach the APK as a release asset rather than committing it. This is a development build, which is also why the fake monetization backend is the default in it.
+Package `com.catcourier.game`, version `0.1.0`, min SDK 24, target SDK 34, ARMv7 + ARM64. Build artifacts are gitignored; attach the APK as a release asset rather than committing it. This is a development build, which is also why the fake monetization backend is the default in it. The most recent development APK is 276.6 MB, SHA-256 `1934307041A19339FB3CEAAFF514EA928383459BB9E89168410273BC1C198130`; that size is almost entirely the 239 generated PNGs, which Unity is importing uncompressed for the fast in-game loads.
 
 For the Next Gen Android demo, use **Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo**, enter a Test Store public key, then **Cat Courier > Build > Android Next Gen Demo APK**. This path blocks an APK with fake purchases or a missing key.
 
