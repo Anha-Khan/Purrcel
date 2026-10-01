@@ -90,13 +90,16 @@ namespace CatCourier.Obstacles
 
         private void ResolveTarget()
         {
-            if (playerTarget == null)
+            if (playerTarget != null)
             {
-                var player = FindObjectOfType<PlayerController>();
-                if (player != null)
-                {
-                    playerTarget = player.transform;
-                }
+                return;
+            }
+
+            // Cached: this ran on every Simulate, scanning the scene each frame.
+            var player = FindObjectOfType<PlayerController>();
+            if (player != null)
+            {
+                playerTarget = player.transform;
             }
         }
     }

@@ -69,6 +69,13 @@ namespace CatCourier.Tests.PlayMode
                 Is.EqualTo(pausedChunks),
                 "Paused generation must neither recycle nor spawn chunks.");
 
+            // Put the camera back on the player. The probe above deliberately threw it
+            // 480 m ahead to prove a frozen window cannot recycle; leaving it there
+            // would make every chunk permanently behind the camera, so the window would
+            // recycle and refill to the same chained positions forever and the resumed
+            // snapshot could never differ.
+            camera.transform.position = new Vector3(player.DistanceMeters, 0f, 0f);
+
             game.ResumeRun();
             Assert.That(game.State, Is.EqualTo(GameState.Running));
             Assert.That(Time.timeScale, Is.EqualTo(1f), "Resume must restore the time scale.");
@@ -83,10 +90,31 @@ namespace CatCourier.Tests.PlayMode
                 player.DistanceMeters,
                 Is.GreaterThan(pausedDistance),
                 "Resumed gameplay must move the player again.");
+
+            // The window only scrolls once the camera has passed a chunk's start, and a
+            // full window refills from the same pooled instances at the same chained
+            // positions, so the snapshot is only meaningful after the player has covered
+            // more ground than the window is wide. One chunk is not enough: the rearmost
+            // chunk is recycled at CHUNK_WIDTH past the camera's left edge.
+            var travelled = 0f;
+            while (travelled < Constants.CHUNK_WIDTH * 2f)
+            {
+                yield return new WaitForFixedUpdate();
+                travelled = player.DistanceMeters - pausedDistance;
+                // FollowCamera does this in the real scene; the window can only scroll
+                // once the camera has actually followed the runner.
+                camera.transform.position = new Vector3(player.DistanceMeters, 0f, 0f);
+            }
+
+            var resumedChunks = SnapshotActiveChunks(manager);
             Assert.That(
-                SnapshotActiveChunks(manager),
+                resumedChunks.Count,
+                Is.EqualTo(Constants.ACTIVE_CHUNK_COUNT),
+                "Resumed generation must keep the chunk window full.");
+            Assert.That(
+                resumedChunks,
                 Is.Not.EqualTo(pausedChunks),
-                "Resumed generation must keep streaming chunks.");
+                "Resumed generation must scroll the window as the player advances.");
         }
 
         [UnityTest]

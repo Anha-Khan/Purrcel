@@ -88,25 +88,21 @@ namespace CatCourier.Monetization
 
         private void AddEntitlementForPackage(string packageId)
         {
-            if (packageId == RevenueCatIds.PackageMonthly || packageId == RevenueCatIds.PackageAnnual)
+            // Package to entitlement. The paywall and RevenueCatIds already owned the
+            // package to offering half of this; only the entitlement ids are here.
+            var entitlement = packageId switch
             {
-                activeEntitlements.Add(Constants.ENTITLEMENT_PREMIUM);
-            }
-            else if (packageId == RevenueCatIds.PackageRare)
+                RevenueCatIds.PackageMonthly or RevenueCatIds.PackageAnnual => Constants.ENTITLEMENT_PREMIUM,
+                RevenueCatIds.PackageRare => Constants.ENTITLEMENT_RARE_PACK,
+                RevenueCatIds.PackageLegendary => Constants.ENTITLEMENT_LEGEND_PACK,
+                RevenueCatIds.PackageHarbour => Constants.ENTITLEMENT_HARBOUR,
+                RevenueCatIds.PackageSuburbs => Constants.ENTITLEMENT_SUBURBS,
+                _ => null
+            };
+
+            if (entitlement != null)
             {
-                activeEntitlements.Add(Constants.ENTITLEMENT_RARE_PACK);
-            }
-            else if (packageId == RevenueCatIds.PackageLegendary)
-            {
-                activeEntitlements.Add(Constants.ENTITLEMENT_LEGEND_PACK);
-            }
-            else if (packageId == RevenueCatIds.PackageHarbour)
-            {
-                activeEntitlements.Add(Constants.ENTITLEMENT_HARBOUR);
-            }
-            else if (packageId == RevenueCatIds.PackageSuburbs)
-            {
-                activeEntitlements.Add(Constants.ENTITLEMENT_SUBURBS);
+                activeEntitlements.Add(entitlement);
             }
         }
 

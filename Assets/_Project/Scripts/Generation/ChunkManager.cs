@@ -292,6 +292,24 @@ namespace CatCourier.Generation
 
             var cameraLeft = gameplayCamera.transform.position.x - gameplayCamera.orthographicSize * gameplayCamera.aspect;
             var recycleAt = cameraLeft - Constants.CHUNK_WIDTH;
+
+            // This used to recycle exactly one chunk per frame. At max run speed a chunk
+            // passes in about 1.1 s, so it kept up by luck and had no headroom if
+            // ACTIVE_CHUNK_COUNT ever rose. Recycle every chunk that is behind.
+            var recycleCount = 0;
+            while (recycleCount < Constants.ACTIVE_CHUNK_COUNT)
+            {
+                if (!RecycleOne(cameraLeft, recycleAt))
+                {
+                    return;
+                }
+
+                recycleCount++;
+            }
+        }
+
+        private bool RecycleOne(float cameraLeft, float recycleAt)
+        {
             ChunkMarker rearmost = null;
 
             foreach (var marker in activeChunks)
@@ -309,7 +327,7 @@ namespace CatCourier.Generation
 
             if (rearmost == null)
             {
-                return;
+                return false;
             }
 
             activeChunks.Remove(rearmost);
@@ -329,6 +347,7 @@ namespace CatCourier.Generation
             pooledPrefabSources[chunk] = sourcePrefab;
             pool.Add(chunk);
             ActiveAheadCount = CountAhead();
+            return true;
         }
 
         private int CountAhead()

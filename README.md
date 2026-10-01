@@ -47,7 +47,7 @@ The game runs in Unity `2022.3.62f3`. The Game scene has a playable fallback rou
 | UI presenters (hub, HUD, pause, death) | Complete (IMGUI placeholders) |
 | Persistence with atomic writes and recovery | Complete |
 
-Latest Windows editor verification: **148/148 EditMode tests** and **31/31 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, checks that the Hub has a painted camera view, and proves an abandoned run still banks its coins. An earlier Windows Android development build passed; this art and gameplay update has not been rebuilt for Android.
+Latest Windows editor verification: **150/150 EditMode tests** and **31/31 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, checks that the Hub has a painted camera view, and proves an abandoned run still banks its coins. An earlier Windows Android development build passed; this art and gameplay update has not been rebuilt for Android.
 
 ## What is not finished yet
 
@@ -57,7 +57,7 @@ These are content and account gates, not code defects. Nothing in this repositor
 - **Art and UI polish.** Five painted cats, districts, roads and gameplay objects are integrated. Every menu is still IMGUI, laid out against the safe area but not a shipping interface.
 - **Audio clips and mixer.** The audio system is fully wired and silent-safe, but no clip assets exist yet.
 - **A real ad SDK.** Only a deterministic fake backend ships. Ad serving is a provider decision; see [Economy and monetization](#economy-and-monetization).
-- **Real RevenueCat sandbox purchases, restore, and trial metadata.** These require local public sandbox keys and a physical device.
+- **Real RevenueCat purchases, restore, and trial metadata.** `RealPurchasesBackend` is written and compiles, but it is compiled out in every environment a test can reach and has never executed. Only a device can prove it. Use a Test Store key; see [NEXT-GEN-SUBMISSION.md](NEXT-GEN-SUBMISSION.md).
 - **Device-level verification** of touch feel, animation visibility, and frame pacing. iOS export requires macOS with Xcode.
 
 Unfinished paid content is never sold. Breed packs and district packs stay hidden from the paywall until real content and matching entitlements exist, and Harbour and Suburbs remain locked until chunk content is registered. The in-game hub labels them accordingly.
@@ -134,7 +134,7 @@ All bindings live in `Assets/_Project/Input/CatCourierControls.inputactions`.
 | Generation | Seeded weighted chunk selection, spacing rules, a fixed six-chunk pool, and a safe fallback when catalog entries are missing |
 | Weather | Clear, rain, wind, and night, assigned once per run, each with distinct physics or visibility effects |
 | Packages | Slot-based carry limit from upgrades, urgent delivery timer with a premium bonus, per-checkpoint delivery scoring, and per-leg replenishment |
-| Districts | Old Town and Downtown always available; Harbour at 600 m, Suburbs at 1200 m, or via entitlement, or unlocked by premium |
+| Districts | Old Town and Downtown always available; Harbour at 600 m, Suburbs at 1200 m, or via entitlement, or unlocked by premium. The two district packs add a 1.25× coin bonus in their own district |
 | Story beats | One-time district story cards persisted so they never repeat |
 | Economy | Atomic coin spend and purchase transactions that roll back completely if the write fails |
 | Persistence | Atomic JSON save with backup, corruption quarantine, and safe default recovery |
@@ -262,7 +262,7 @@ Writes are atomic: serialize to a temporary file, validate it can be read back, 
 ### Unity Test Runner
 
 1. Open **Window > General > Test Runner**.
-2. Select **EditMode**, run all — 148 tests.
+2. Select **EditMode**, run all — 150 tests.
 3. Select **PlayMode**, run all — 31 tests.
 
 The PlayMode suite proves save-path isolation by snapshotting `Application.persistentDataPath` and failing if it changes. Every PlayMode fixture inherits that harness, including the ones that load the real scenes.
@@ -346,7 +346,7 @@ Assets/_Project/Scripts/Audio/         audio manager, library, event relay
 Assets/_Project/Editor/                idempotent setup and release readiness validation
 Assets/_Project/Config/                chunk catalog, audio library, local RevenueCat config
 Assets/_Project/Scenes/                Boot, Hub, Game
-Assets/Tests/EditMode/                 148 fast tests
+Assets/Tests/EditMode/                 150 fast tests
 Assets/Tests/PlayMode/                 31 scene and lifecycle tests
 Tools/                                 local verification scripts
 HANDOFF.md                             open questions, blockers, and delivery status

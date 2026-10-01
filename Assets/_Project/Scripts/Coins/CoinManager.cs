@@ -14,7 +14,8 @@ namespace CatCourier.Coins
         /// <summary>Set when the run enters a district whose unlock pack the player owns.</summary>
         public float DistrictMultiplier { get; private set; } = 1f;
 
-        public event Action<int> OnBankChanged;
+        // The previous OnBankChanged was invoked in three places and subscribed to
+        // nowhere; consumers read Bank directly.
         public event Action<int, int, Vector3> OnCoinsCollected;
 
         private float PremiumMultiplier { get; set; } = 1f;
@@ -37,7 +38,6 @@ namespace CatCourier.Coins
         public void ReloadBank()
         {
             Bank = SaveSystem.Instance?.Data?.totalCoins ?? 0;
-            OnBankChanged?.Invoke(Bank);
         }
 
         public void ResetRun()
@@ -66,7 +66,6 @@ namespace CatCourier.Coins
             var awarded = Math.Min(amount, int.MaxValue);
             Bank = SaturatingAdd(Bank, awarded);
             RunCoins = SaturatingAdd(RunCoins, awarded);
-            OnBankChanged?.Invoke(Bank);
             return awarded;
         }
 
@@ -82,7 +81,6 @@ namespace CatCourier.Coins
             var awarded = RoundAward(rawValue * FinalMultiplier);
             Bank = SaturatingAdd(Bank, awarded);
             RunCoins = SaturatingAdd(RunCoins, awarded);
-            OnBankChanged?.Invoke(Bank);
             OnCoinsCollected?.Invoke(rawValue, awarded, worldPosition);
             return awarded;
         }

@@ -334,6 +334,8 @@ namespace CatCourier.Audio
             MusicState = MusicPlaybackState.Stopped;
         }
 
+        // Ambient rides the mute state only. The per-clip volume from the library is
+        // already applied by PlayAmbient, so this is a gate, not a second volume.
         private float AmbientVolume() => IsMuted ? 0f : 1f;
 
         private float ResolvePitch(float pitchVariance)

@@ -12,6 +12,7 @@ namespace CatCourier.Core
         public event Action<string> OnSceneLoadFailed;
 
         private bool isLoading;
+        private bool subscribedGameManager;
 
         private void Awake()
         {
@@ -21,8 +22,14 @@ namespace CatCourier.Core
             }
 
             PersistIfRoot();
+
+            // PersistentSystems creates GameManager before SceneLoader, so subscribing
+            // only when the singleton already exists is deliberate. The PlayMode harness
+            // relies on it: it builds the loader first so the failure event has no
+            // subscriber and the stubbed load cannot disturb the state machine.
             if (GameManager.Instance != null)
             {
+                subscribedGameManager = true;
                 OnSceneLoadFailed += GameManager.Instance.HandleSceneLoadFailed;
             }
         }
@@ -101,10 +108,12 @@ namespace CatCourier.Core
 
         private void OnDestroy()
         {
-            if (GameManager.Instance != null)
+            if (subscribedGameManager && GameManager.Instance != null)
             {
                 OnSceneLoadFailed -= GameManager.Instance.HandleSceneLoadFailed;
             }
+
+            subscribedGameManager = false;
 
             if (Instance == this)
             {

@@ -28,6 +28,13 @@ namespace CatCourier.UI
 
             catBreeds ??= FindObjectOfType<CatBreedManager>();
             HubLayout.BeginContent();
+            if (catBreeds != null && !string.IsNullOrEmpty(catBreeds.SelectionFallbackReason))
+            {
+                // A lapsed premium used to drop the cat's bonuses with nothing on screen
+                // explaining why the numbers changed.
+                GUILayout.Label(catBreeds.SelectionFallbackReason);
+            }
+
             var breeds = catBreeds?.Breeds;
             if (breeds == null || breeds.Count == 0)
             {
@@ -57,6 +64,10 @@ namespace CatCourier.UI
                 else if (!unlocked)
                 {
                     GUILayout.Label(catBreeds.LockReason(breed.id), GUILayout.Width(180f));
+                }
+                else if (breed.id == catBreeds.ActiveBreed?.id && !string.IsNullOrEmpty(catBreeds.SelectionFallbackReason))
+                {
+                    GUILayout.Label("In use (fallback)", GUILayout.Width(180f));
                 }
                 else if (GUILayout.Button("Select", GUILayout.Width(90f)))
                 {

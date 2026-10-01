@@ -143,10 +143,13 @@ namespace CatCourier.Obstacles
 
         private void ResolveDifficultyManager()
         {
-            if (difficultyManager == null)
+            if (difficultyManager != null)
             {
-                difficultyManager = FindObjectOfType<DifficultyManager>();
+                return;
             }
+
+            // Cached once. This ran from OnEnable on every patrol obstacle.
+            difficultyManager = FindObjectOfType<DifficultyManager>();
         }
 
         private void SubscribeToDifficulty()

@@ -16,8 +16,12 @@ namespace CatCourier.Obstacles
     {
         public ObstacleType type;
         public bool isDeadly;
-        public bool isDestroyable;
-        public float speedMultiplierOnHit = 1f;
+
+        // isDestroyable and speedMultiplierOnHit are written by every subclass and read
+        // by nothing. They are serialized inspector fields, so removing them would drop
+        // authored data in Game.unity silently. Left in place, marked dead.
+        [SerializeField] public bool isDestroyable;
+        [SerializeField] public float speedMultiplierOnHit = 1f;
 
         private bool initialized;
         private bool chunkActive = true;

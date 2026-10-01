@@ -184,21 +184,41 @@ namespace CatCourier.Tests
         }
 
         [Test]
-        public void PaywallGate_AllowsExplicitLockedAndSettingsRequests()
+        public void PaywallGate_AllowsAnExplicitSettingsRequest()
         {
             PaywallGate.ResetForTests();
             var requests = new List<PaywallSource>();
             PaywallGate.OnRequested += requests.Add;
             try
             {
-                PaywallGate.Request(PaywallSource.LockedFeature);
                 PaywallGate.Request(PaywallSource.Settings);
-                Assert.That(requests, Is.EqualTo(new[] { PaywallSource.LockedFeature, PaywallSource.Settings }));
+                Assert.That(requests, Is.EqualTo(new[] { PaywallSource.Settings }));
             }
             finally
             {
                 PaywallGate.ResetForTests();
             }
+        }
+
+        [Test]
+        public void RevenueCatIds_IsTheSingleSourceForPackageToOffering()
+        {
+            // The paywall used to reverse-map package to offering by hand, the fake
+            // backend encoded it again, and the tests a third time. Adding a SKU meant
+            // editing all three and hoping they agreed.
+            foreach (var offeringId in RevenueCatIds.AllOfferings())
+            {
+                var packages = RevenueCatIds.PackagesIn(offeringId);
+                Assert.That(packages, Is.Not.Empty, $"{offeringId} has no packages.");
+                foreach (var packageId in packages)
+                {
+                    Assert.That(RevenueCatIds.OfferingFor(packageId), Is.EqualTo(offeringId),
+                        $"{packageId} does not map back to {offeringId}.");
+                }
+            }
+
+            Assert.That(RevenueCatIds.OfferingFor("not_a_package"), Is.Empty,
+                "An unknown package must not fall through to a real offering.");
         }
 
         [Test]

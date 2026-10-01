@@ -448,6 +448,41 @@ namespace CatCourier.Tests
         }
 
         [Test]
+        public void SceneLoadFailure_IsReportedToGameManager()
+        {
+            // SceneLoader only subscribes when GameManager already exists, so a load
+            // failing after the manager appears would otherwise go unreported. This
+            // pins that the normal order really does deliver the failure.
+            var host = new GameObject("SceneLoadFailureDay5Test");
+            try
+            {
+                var manager = host.AddComponent<GameManager>();
+                var claim = typeof(GameManager).GetMethod("ClaimSingleton", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(claim.Invoke(manager, null), Is.True);
+
+                var loaderHost = new GameObject("SceneLoaderFailureDay5Test");
+                var loader = loaderHost.AddComponent<SceneLoader>();
+                SetStaticInstance(typeof(SceneLoader), loader);
+
+                var failed = string.Empty;
+                loader.OnSceneLoadFailed += scene => failed = scene;
+
+                // A loader that believes it is mid-load takes the failure branch.
+                typeof(SceneLoader).GetField("isLoading", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.SetValue(loader, true);
+
+                loader.Load("Game");
+                Assert.That(failed, Is.EqualTo("Game"));
+            }
+            finally
+            {
+                SetStaticInstance(typeof(SceneLoader), null);
+                SetStaticInstance(typeof(GameManager), null);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void DistrictReachDistances_AreDefinedInOnePlace()
         {
             Assert.That(RunLoadoutService.HarbourReachDistance, Is.EqualTo(600f));

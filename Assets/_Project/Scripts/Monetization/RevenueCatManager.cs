@@ -64,11 +64,7 @@ namespace CatCourier.Monetization
             initializing = true;
             SetState(RevenueCatState.Initializing);
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            backend = IsFakeBackend ? (IPurchasesBackend)new FakePurchasesBackend() : new RealPurchasesBackend();
-#else
-            backend = new RealPurchasesBackend();
-#endif
+            backend = CreateBackend();
             if (backend == null)
             {
                 Fail("RevenueCat backend could not be created.");
@@ -78,6 +74,19 @@ namespace CatCourier.Monetization
             backend.EntitlementsChanged += PublishEntitlements;
             var key = config != null ? config.GetPublicKey() : string.Empty;
             backend.Initialize(key, null, HandleInitialized);
+        }
+
+        /// <summary>
+        /// The backend for this build. A release build always gets the real one; the fake
+        /// is unreachable there, so the paywall can never ship simulated prices.
+        /// </summary>
+        private IPurchasesBackend CreateBackend()
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            return IsFakeBackend ? (IPurchasesBackend)new FakePurchasesBackend() : new RealPurchasesBackend();
+#else
+            return new RealPurchasesBackend();
+#endif
         }
 
         public void GetOffering(string offeringId, Action<bool, PaywallOffering> done)
@@ -133,11 +142,9 @@ namespace CatCourier.Monetization
 
             backend.Restore(success =>
             {
-                if (!success)
-                {
-                    SetState(RevenueCatState.Degraded);
-                }
-
+                // These reported Degraded on any failure, so one offline blip left the
+                // SDK looking broken until the app restarted. Degraded is for a real
+                // configuration fault; a failed network call just reports false.
                 done(success);
             });
         }
@@ -150,20 +157,25 @@ namespace CatCourier.Monetization
                 return;
             }
 
-            backend.RefreshCustomerInfo(success =>
-            {
-                if (!success)
-                {
-                    SetState(RevenueCatState.Degraded);
-                }
-
-                done(success);
-            });
+            backend.RefreshCustomerInfo(success => done(success));
         }
 
         public void ConfigureSdk(string publicKey, string appUserId, Action<bool> completed)
         {
-            if (backend == null || initializing)
+            if (initializing)
+            {
+                completed(false);
+                return;
+            }
+
+            // A failed init disposes the backend, so this rebuilt one to allow a retry.
+            // That recovery path is what a tester needs after fixing a bad key.
+            if (backend == null)
+            {
+                backend = CreateBackend();
+            }
+
+            if (backend == null)
             {
                 completed(false);
                 return;

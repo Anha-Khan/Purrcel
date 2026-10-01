@@ -267,19 +267,6 @@ namespace CatCourier.UI
             });
         }
 
-        private static string OfferingFor(string packageId)
-        {
-            if (packageId == RevenueCatIds.PackageMonthly || packageId == RevenueCatIds.PackageAnnual)
-            {
-                return RevenueCatIds.OfferingDefault;
-            }
-
-            if (packageId == RevenueCatIds.PackageRare || packageId == RevenueCatIds.PackageLegendary)
-            {
-                return RevenueCatIds.OfferingBreeds;
-            }
-
-            return RevenueCatIds.OfferingDistricts;
-        }
+        private static string OfferingFor(string packageId) => RevenueCatIds.OfferingFor(packageId);
     }
 }

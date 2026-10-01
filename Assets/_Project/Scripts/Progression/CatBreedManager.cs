@@ -49,6 +49,12 @@ namespace CatCourier.Progression
 
         public bool IsSelectedUsable => Selected != null && IsUnlocked(SelectedId);
 
+        /// <summary>
+        /// Why the active breed is not the selected one, e.g. a premium lapse. Empty when
+        /// the selection is in use.
+        /// </summary>
+        public string SelectionFallbackReason { get; private set; } = string.Empty;
+
         public float SpeedBonus => ActiveBreed != null ? ActiveBreed.speedBonus : 0f;
         public float JumpBonus => ActiveBreed != null ? ActiveBreed.jumpBonus : 0f;
         public float CoinBonusMultiplier =>
@@ -212,7 +218,12 @@ namespace CatCourier.Progression
             Selected = restored;
             SelectedId = restored != null ? restored.id : string.Empty;
 
+            // A lapsed premium silently fell back to a starter, dropping the cat's
+            // bonuses with no explanation anywhere. Record why so the hub can say so.
             ActiveBreed = IsSelectedUsable ? Selected : DefaultBreed();
+            SelectionFallbackReason = !IsSelectedUsable && Selected != null
+                ? $"Premium lapsed, so {Selected.breedName} is locked."
+                : string.Empty;
             OnUnlocksChanged?.Invoke();
             if (changed)
             {

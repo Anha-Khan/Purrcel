@@ -2,19 +2,33 @@
 
 ## Spec questions
 
-- `DELIVERY_SCORE_PULSE` needs one approved calculation and duration constant.
-- Define package refill behavior after delivery when only one slot exists.
-- Define continue invincibility collision behavior.
-- Define rewarded-ad coin bonus, or confirm continue-only reward.
-- Define delivery pulse score application and expiration.
-- Define reach-unlock and purchase-unlock relationship for districts.
-- Approve camera orthographic size and aspect-ratio behavior.
-- Approve package/checkpoint art requirements without world pickups.
-- Approve ad-failure user feedback.
+Resolved, with the decision recorded in code:
+
+- `DELIVERY_SCORE_PULSE` and its duration: `Constants.DELIVERY_SCORE_PULSE` is 1.5 for
+  `PackageManager.DeliveryScoreDuration` (2 s), applied by `ScoreManager.DeliveryScoreMultiplier`.
+- Package refill after delivery: `RunCoordinator.HandleCheckpointReached` refills only when
+  `loadout.PackageSlots > 1`. A single-slot courier picks up a new parcel at the next leg's
+  normal assignment instead.
+- Continue invincibility: 2 s, granted by `PlayerController.RespawnFromContinue`, and a second
+  death inside the window is absorbed.
+- Rewarded-ad reward: continue-only, granted exactly once per run. No coin bonus ships.
+- District reach vs purchase: reach gates are free at 600 m and 1200 m; the packs sell a 1.25x
+  coin bonus in their own district.
+
+Still open, and none block the Next Gen submission:
+
+- Camera orthographic size and aspect-ratio behaviour on unusual device aspect ratios. The
+  fallback route is verified in the editor; a phone with an extreme aspect needs a look.
+- Package and checkpoint art requirements, specifically whether the parcels need to be visible
+  in the world outside the cat's carry slot. Currently they are not.
+- Ad-failure user feedback copy. `AdManager.StatusMessage` is displayed as-is; the wording is
+  placeholder.
 
 ## Requests
 
-- Provide RevenueCat public sandbox keys locally. Do not paste keys into chat or commit them.
+- Provide a RevenueCat **Test Store** public key locally for the Next Gen Android demo. Do not
+  paste keys into chat or commit them. `Cat Courier > Setup > Use Real RevenueCat for Next Gen
+  Demo` selects the config asset and flips the two enums; the key is pasted into the Inspector.
 
 ## Blockers
 
@@ -47,4 +61,7 @@
 - 2026-09-26: Day 4 real SDK sandbox purchases, restore, trial metadata, and device-only checks remain pending local public sandbox keys and a connected Android device. No Git operations were performed.
 - 2026-09-26: Day 5 manual gates remain: authored cat/upgrade/district content, real ad SDK/provider selection, audio clips/mixer assets, and Android device verification of upgrades, purchases, ads, continue, UI, audio, persistence, and performance.
 - 2026-09-25: Day 2 spec decisions recorded: wall-bounce duration `0.15f`, combo value uses raw coin value, score difficulty uses D0/D5/D10 interpolation, and integer awards round midpoint away from zero.
-- No Git operations were performed.
+- 2026-10-01: Fix pass on `codex/playable-cat-run`. Player-facing: abandoning a run now banks its coins, the death screen shows the live bank instead of the pre-run save value, and a failed save no longer traps the player on the death screen. Ads: the per-run interstitial and reward caps survive a continue, a failed load no longer burns the run's ad, and a build with no ad backend skips the interstitial entirely. Economy: the two district unlock packs now grant a 1.25x coin bonus in their own district instead of unlocking content that already unlocks free, and the premium 2x rule has a single owner. Test integrity: the false-green RevenueCat boundary test, the order-dependent EditMode fixtures, and the two PlayMode suites that lacked the save-path guard are all fixed. Gameplay: the fallback route has a real difficulty curve and logs its seed, `StumbleObstacle` no longer corrupts run speed, and screen shake is wired. UI: every menu is inset by the safe area, and the HUD shows the carried parcel, its urgent countdown, and the fragile warning that used to be invisible. Verified 150/150 EditMode and 31/31 PlayMode on Windows; secret scan clean. Android build and device RevenueCat verification still outstanding.
+- 2026-10-01: Cleanup pass. Removed nine events that were invoked but never subscribed to, so the API stopped advertising behaviour that did not happen. Cached four `FindObjectOfType` lookups that ran per frame or per trigger. Fixed a lapsed premium silently swapping the player's cat for a starter with no explanation, which the hub now reports. Single-sourced the package to offering mapping, which had three copies that could drift. The RevenueCat re-init path was dead, because a failed init disposed the backend and nothing rebuilt it; it now does, so a tester can recover after fixing a key. A failed restore or refresh no longer marks the whole SDK degraded until restart. Chunk recycling now drains every chunk behind the camera instead of one per frame, which had no headroom above the current count. A missing RevenueCat config is a release blocker rather than a warning, since a development build in that state runs on fake purchases.
+- 2026-10-01: Closed five of the nine open spec questions, each recorded next to the decision in `HANDOFF.md` and in the code. Four remain open and none block the submission; see the top of this file.
+- The `docs/` directory is gitignored, so the verification guide and spike notes referenced by older entries are local-only and not in this repository.

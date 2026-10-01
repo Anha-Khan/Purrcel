@@ -43,6 +43,18 @@ namespace CatCourier.Core
         public const float HarbourPackCoinBonus = 1.25f;
         public const float SuburbsPackCoinBonus = 1.25f;
 
+        // Managers are created once by PersistentSystems and live for the whole session,
+        // so the scene scan in Build does not need to repeat.
+        private static UpgradeManager upgradeManagerInstance;
+        private static CatBreedManager breedManagerInstance;
+
+        /// <summary>Clears the cached manager lookups. Tests rebuild managers per case.</summary>
+        public static void ResetCachedManagers()
+        {
+            upgradeManagerInstance = null;
+            breedManagerInstance = null;
+        }
+
         /// <summary>
         /// The coin multiplier the district packs grant while running in that district.
         /// Returns 1 for the free districts and for a pack the player does not own, so a
@@ -66,8 +78,14 @@ namespace CatCourier.Core
 
         public static RunLoadout Build()
         {
-            var upgradeManager = UnityEngine.Object.FindObjectOfType<UpgradeManager>();
-            var breedManager = UnityEngine.Object.FindObjectOfType<CatBreedManager>();
+            // Cached per run: these are scene-wide singletons, and Build is called on
+            // every run start and every entitlement change.
+            var upgradeManager = upgradeManagerInstance != null
+                ? upgradeManagerInstance
+                : (upgradeManagerInstance = UnityEngine.Object.FindObjectOfType<UpgradeManager>());
+            var breedManager = breedManagerInstance != null
+                ? breedManagerInstance
+                : (breedManagerInstance = UnityEngine.Object.FindObjectOfType<CatBreedManager>());
             var sourceStats = upgradeManager != null ? upgradeManager.Stats : new PlayerStats();
             var stats = sourceStats != null ? sourceStats.Clone() : new PlayerStats();
             breedManager?.ApplyTo(stats);
