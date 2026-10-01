@@ -44,26 +44,57 @@ namespace CatCourier.UI
         {
             if (!string.IsNullOrEmpty(text) && Time.unscaledTime >= hideAt)
             {
+                // OnGUI plays the lift-away over the final fraction of a second, so the
+                // clear lands after the card has left rather than cutting it off.
                 text = string.Empty;
             }
         }
+
+        private float shownAt = -1f;
 
         private void OnGUI()
         {
             if (string.IsNullOrEmpty(text))
             {
+                shownAt = -1f;
                 return;
             }
 
-            var area = DeathScreenPresenter.CenteredArea(640f, 110f, 40f);
-            GUILayout.BeginArea(area, GUI.skin.box);
-            GUILayout.Label(text, GUILayout.ExpandHeight(true));
-            if (GUILayout.Button("Skip", GUILayout.Width(90f), GUILayout.Height(24f)))
+            if (shownAt < 0f)
+            {
+                shownAt = Time.unscaledTime;
+            }
+
+            var scale = UiTheme.Scale;
+
+            // A story card arrives mid-run. It drops in and lifts away rather than
+            // blinking, so it does not read as a glitch over the gameplay.
+            var age = Time.unscaledTime - shownAt;
+            var life = Mathf.Max(0.001f, hideAt - shownAt);
+            var appear = UiMotion.EaseOutBack(UiMotion.Progress(shownAt, 0.32f));
+            var exit = age > life - 0.3f ? UiMotion.EaseInOutCubic((age - (life - 0.3f)) / 0.3f) : 0f;
+
+            var width = Mathf.Min(700f * scale, HubLayout.SafeRect.width - 40f * scale);
+            var height = 118f * scale;
+            var top = Screen.height - HubLayout.SafeRect.yMax + 46f * scale;
+            var target = new Rect(
+                HubLayout.SafeRect.x + (HubLayout.SafeRect.width - width) * 0.5f,
+                top,
+                width, height);
+
+            // Drops from above and slides up as it leaves.
+            var offset = (1f - appear) * -34f * scale - UiMotion.EaseInOutCubic(exit) * 26f * scale;
+            var outer = UiTheme.Offset(target, 0f, offset);
+
+            UiTheme.Label(outer, text, UiTheme.BodyCentered, UiTheme.Cream);
+
+            var skipWidth = Mathf.Max(96f * scale, UiTheme.Touch);
+            var skip = new Rect(outer.xMax - skipWidth, outer.yMax + 4f * scale, skipWidth,
+                UiTheme.Touch);
+            if (UiTheme.FaceButton(skip, "SKIP", UiTheme.Slate, UiTheme.Cream))
             {
                 text = string.Empty;
             }
-
-            GUILayout.EndArea();
         }
 
         private void HandleStoryBeat(StoryBeat beat)

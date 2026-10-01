@@ -29,11 +29,13 @@ namespace CatCourier.UI
             get
             {
                 var safe = SafeRect;
-                var left = safe.x + 38f;
-                var top = Screen.height - safe.yMax + 174f;
-                return new Rect(left, top,
-                    Mathf.Max(100f, safe.width * 0.63f - 74f),
-                    Mathf.Max(100f, safe.height - 240f));
+                var scale = UiTheme.Scale;
+                var top = Screen.height - safe.yMax + 176f * scale;
+                return new Rect(
+                    safe.x + 24f * scale + 18f * scale,
+                    top + 18f * scale,
+                    Mathf.Max(100f, safe.width * 0.63f - 48f * scale - 36f * scale),
+                    Mathf.Max(100f, safe.height - 176f * scale - 88f * scale - 36f * scale));
             }
         }
 
@@ -52,8 +54,35 @@ namespace CatCourier.UI
                 Mathf.Min(height, safe.height));
         }
 
-        public static void BeginContent() => GUILayout.BeginArea(ContentRect);
+        /// <summary>
+        /// Per-tab scroll offsets, so switching tabs does not inherit the last one's
+        /// position. Declared here because every sibling tab presenter scrolls.
+        /// </summary>
+        private static readonly System.Collections.Generic.Dictionary<HubTab, Vector2> Scrolls =
+            new System.Collections.Generic.Dictionary<HubTab, Vector2>();
 
-        public static void EndContent() => GUILayout.EndArea();
+        /// <summary>
+        /// Opens the shared content rect for a sibling tab presenter, wrapped in a scroll
+        /// view. The upgrades and cats lists are taller than the card on a phone, so
+        /// without this the tail of the list is simply unreachable.
+        /// </summary>
+        public static void BeginContent(HubTab tab)
+        {
+            GUILayout.BeginArea(ContentRect);
+            if (!Scrolls.TryGetValue(tab, out var position))
+            {
+                position = Vector2.zero;
+            }
+
+            position = GUILayout.BeginScrollView(position, false, true);
+            Scrolls[tab] = position;
+        }
+
+        /// <summary>Closes the scroll view opened by <see cref="BeginContent"/>, then the area.</summary>
+        public static void EndContent()
+        {
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+        }
     }
 }

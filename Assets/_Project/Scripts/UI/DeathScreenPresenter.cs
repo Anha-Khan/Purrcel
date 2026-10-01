@@ -1,4 +1,3 @@
-using CatCourier.Art;
 using CatCourier.Audio;
 using CatCourier.Core;
 using CatCourier.Monetization;
@@ -47,33 +46,77 @@ namespace CatCourier.UI
             }
         }
 
+        private const float EntranceSeconds = 0.45f;
+        private float shownAt = -1f;
+
         private void OnGUI()
         {
             game ??= GameManager.Instance;
             if (game == null || game.State != GameState.Dead)
             {
+                shownAt = -1f;
                 return;
+            }
+
+            if (shownAt < 0f)
+            {
+                shownAt = Time.unscaledTime;
             }
 
             var result = game.LastRun;
             var delivered = result.PackagesDelivered > 0;
-            var area = CenteredArea(520f, Screen.height - 120f, 60f);
-            GUILayout.BeginArea(area, GUI.skin.box);
-            GeneratedUiSprite.Draw(GeneratedArtCatalog.Frame(GeneratedArtCatalog.Active?.resultsIcons, delivered ? 0 : 2), 72f, 72f);
-            GUILayout.Label(delivered ? "DELIVERED" : "WIPED OUT");
-            GUILayout.Label($"Score: {result.Score}");
-            GUILayout.Label($"Distance: {result.DistanceMeters:0} m");
-            GUILayout.Label($"Packages delivered: {result.PackagesDelivered}");
-            GUILayout.Label($"Run coins: {result.CoinsCollected}");
+            var scale = UiTheme.Scale;
+            var entrance = UiMotion.EaseOutCubic(UiMotion.Progress(shownAt, EntranceSeconds));
+
+            // Wash over the frozen scene. Without it the panel sits on a moving road and
+            // the text has to win that fight alone.
+            UiTheme.Scrim(0.72f * entrance);
+
+            var width = Mathf.Min(560f * scale, HubLayout.SafeRect.width - 32f * scale);
+            var height = Mathf.Min(Screen.height - 90f * scale, HubLayout.SafeRect.height - 40f * scale);
+            var target = CenteredArea(width, height, 40f * scale);
+
+            // Settles from slightly small rather than fading in place, so the panel reads
+            // as arriving instead of appearing.
+            var outer = UiTheme.ScaledAboutCentre(target, Mathf.Lerp(0.94f, 1f, entrance));
+            var content = UiTheme.Panel(outer, entrance, delivered ? UiTheme.Teal : UiTheme.Danger);
+
+            var y = content.y;
+            var rowHeight = 34f * scale;
+
+            UiTheme.Label(new Rect(content.x, y, content.width, 34f * scale),
+                delivered ? "DELIVERED" : "WIPED OUT", UiTheme.Title,
+                delivered ? UiTheme.Teal : UiTheme.Danger);
+            y += 40f * scale;
+
+            // Score is the reason the player opened this screen; everything else is
+            // supporting detail at caption size.
+            UiTheme.Label(new Rect(content.x, y, content.width, 62f * scale),
+                result.Score.ToString("N0"), UiTheme.Display, UiTheme.Cream);
+            y += 64f * scale;
+
+            var half = content.width * 0.5f;
+            UiTheme.StatRow(new Rect(content.x, y, half - 8f * scale, rowHeight),
+                "DISTANCE", $"{result.DistanceMeters:0} m", UiTheme.Cream);
+            UiTheme.StatRow(new Rect(content.x + half + 8f * scale, y, half - 8f * scale, rowHeight),
+                "DISTRICT", result.DistrictReached.ToString(), UiTheme.Cream);
+            y += rowHeight;
+
+            UiTheme.StatRow(new Rect(content.x, y, half - 8f * scale, rowHeight),
+                "PARCELS", result.PackagesDelivered.ToString(), UiTheme.Cream);
+            UiTheme.StatRow(new Rect(content.x + half + 8f * scale, y, half - 8f * scale, rowHeight),
+                "RUN COINS", result.CoinsCollected.ToString(), UiTheme.Gold);
+            y += rowHeight;
+
             // CoinManager.Bank is the live total including this run. Reading the
             // save here showed the pre-run value next to the HUD's correct number.
-            GUILayout.Label($"Bank: {BankedCoins()}");
-            GUILayout.Label($"District: {result.DistrictReached}");
+            UiTheme.StatRow(new Rect(content.x, y, content.width, rowHeight),
+                "BANKED", BankedCoins().ToString("N0"), UiTheme.Gold);
+            y += rowHeight + 10f * scale;
 
-            DrawContinueBlock();
-            DrawAdBlock();
-            DrawResultActions();
-            GUILayout.EndArea();
+            y = DrawContinueBlock(content, y, width);
+            y = DrawAdBlock(content, y, width);
+            DrawResultActions(content, y, width);
         }
 
         /// <summary>
@@ -94,17 +137,38 @@ namespace CatCourier.UI
             return coins != null ? coins.Bank : SaveSystem.Instance?.TotalCoins ?? 0;
         }
 
-        private void DrawContinueBlock()
+        /// <summary>
+        /// The continue offer is the one time-pressured decision in the game, so the
+        /// remaining time is a depleting bar rather than a number the player has to read
+        /// and mentally subtract.
+        /// </summary>
+        private float DrawContinueBlock(Rect content, float y, float width)
         {
             if (!continueDecisionActive)
             {
-                return;
+                return y;
             }
 
-            GUILayout.Space(8f);
-            GUILayout.Label($"Continue? {Mathf.Max(0f, continueSecondsRemaining):0.0}s   (remaining: {game.ContinuesLeft})");
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Keep Running", GUILayout.Height(36f)))
+            var scale = UiTheme.Scale;
+            var remaining = Mathf.Max(0f, continueSecondsRemaining);
+            var critical = remaining <= 2f;
+            var face = critical ? UiTheme.Danger : UiTheme.Gold;
+
+            UiTheme.Label(new Rect(content.x, y, content.width, 26f * scale),
+                $"CONTINUE?   {game.ContinuesLeft} LEFT", UiTheme.Caption, UiTheme.Muted);
+            y += 26f * scale;
+
+            var track = new Rect(content.x, y, content.width, 8f * scale);
+            var pulse = critical ? 0.5f + 0.5f * UiMotion.Pulse(10f) : 1f;
+            UiTheme.Bar(track, Mathf.Clamp01(remaining / 5f), UiTheme.Fade(face, pulse));
+            y += 18f * scale;
+
+            var buttonWidth = (content.width - 12f * scale) * 0.5f;
+            var buttonHeight = Mathf.Max(UiTheme.Touch, 56f * scale);
+            var primary = new Rect(content.x, y, buttonWidth, buttonHeight);
+            var secondary = new Rect(content.x + buttonWidth + 12f * scale, y, buttonWidth, buttonHeight);
+
+            if (UiTheme.FaceButton(primary, "KEEP RUNNING", UiTheme.Orange, UiTheme.Ink))
             {
                 AudioManager.Instance?.PlaySfx(SfxId.UiTap);
                 if (game.UseContinue())
@@ -113,61 +177,74 @@ namespace CatCourier.UI
                 }
             }
 
-            if (GUILayout.Button("No Thanks", GUILayout.Height(36f)))
+            if (UiTheme.FaceButton(secondary, "NO THANKS", UiTheme.Slate, UiTheme.Cream))
             {
                 AudioManager.Instance?.PlaySfx(SfxId.UiTap);
                 continueDecisionActive = false;
                 game.DeclineContinue();
             }
 
-            GUILayout.EndHorizontal();
+            _ = width;
+            return y + buttonHeight + 10f * scale;
         }
 
-        private void DrawAdBlock()
+        private float DrawAdBlock(Rect content, float y, float width)
         {
             var ads = AdManager.Instance;
             if (!showAdContinue || ads == null || continueDecisionActive)
             {
-                return;
+                return y;
             }
 
-            GUILayout.Space(6f);
+            var scale = UiTheme.Scale;
+
+            // No backend means nothing to offer. An empty block reads as a bug, so say
+            // it once and leave it out of the layout entirely.
             if (!ads.HasBackend)
             {
-                GUILayout.Label("Rewarded ads are not configured in this build.");
-                return;
+                return y;
             }
 
-            GUILayout.Label(rewardGranted ? "Continue reward already used this run." : "Watch an ad for an extra continue.");
-            if (!rewardGranted && !ads.IsBusy && GUILayout.Button("Watch Ad", GUILayout.Height(32f)))
+            if (rewardGranted)
+            {
+                UiTheme.Label(new Rect(content.x, y, content.width, 28f * scale),
+                    "Continue reward already used this run.", UiTheme.Caption, UiTheme.Muted);
+                return y + 32f * scale;
+            }
+
+            var buttonWidth = Mathf.Max(content.width * 0.42f, UiTheme.Touch * 1.6f);
+            var buttonHeight = Mathf.Max(UiTheme.Touch, 52f * scale);
+            var watch = new Rect(content.x, y, buttonWidth, buttonHeight);
+            var copy = new Rect(content.x + buttonWidth + 12f * scale, y,
+                content.width - buttonWidth - 12f * scale, buttonHeight);
+
+            if (!ads.IsBusy && UiTheme.FaceButton(watch, "WATCH AD", UiTheme.Teal, UiTheme.Cream))
             {
                 AudioManager.Instance?.PlaySfx(SfxId.UiTap);
                 ads.ShowContinueRewarded(HandleRewardResult);
             }
 
-            if (ads.IsBusy)
-            {
-                GUILayout.Label("Ad loading...");
-            }
+            var message = ads.IsBusy
+                ? "Loading..."
+                : !string.IsNullOrEmpty(adMessage) ? adMessage : "Extra continue";
+            UiTheme.Label(copy, message, UiTheme.Caption, ads.IsBusy ? UiTheme.Muted : UiTheme.Teal);
 
-            if (!string.IsNullOrEmpty(adMessage))
-            {
-                GUILayout.Label(adMessage);
-            }
+            _ = width;
+            return y + buttonHeight + 10f * scale;
         }
 
-        private void DrawResultActions()
+        private void DrawResultActions(Rect content, float y, float width)
         {
-            GUILayout.Space(10f);
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Copy Score", GUILayout.Height(32f)))
-            {
-                AudioManager.Instance?.PlaySfx(SfxId.UiTap);
-                GUIUtility.systemCopyBuffer = BuildShareText();
-                shareCopied = true;
-            }
+            var scale = UiTheme.Scale;
+            var buttonHeight = Mathf.Max(UiTheme.Touch, 50f * scale);
+            var half = (content.width - 12f * scale) * 0.5f;
 
-            if (GUILayout.Button("Back to Hub", GUILayout.Height(32f)))
+            // Returning to the hub is the primary action here: the run is over either
+            // way, so it carries the orange rather than sitting as a quiet third option.
+            var back = new Rect(content.x, y, half, buttonHeight);
+            var copy = new Rect(content.x + half + 12f * scale, y, half, buttonHeight);
+
+            if (UiTheme.FaceButton(back, "BACK TO HUB", UiTheme.Orange, UiTheme.Ink))
             {
                 AudioManager.Instance?.PlaySfx(SfxId.UiTap);
                 var ads = AdManager.Instance;
@@ -181,11 +258,15 @@ namespace CatCourier.UI
                 }
             }
 
-            GUILayout.EndHorizontal();
-            if (shareCopied)
+            if (UiTheme.FaceButton(copy, shareCopied ? "COPIED" : "COPY SCORE",
+                    shareCopied ? UiTheme.Teal : UiTheme.Slate, UiTheme.Cream))
             {
-                GUILayout.Label("Score copied to clipboard.");
+                AudioManager.Instance?.PlaySfx(SfxId.UiTap);
+                GUIUtility.systemCopyBuffer = BuildShareText();
+                shareCopied = true;
             }
+
+            _ = width;
         }
 
         private string BuildShareText()
