@@ -188,8 +188,8 @@ namespace CatCourier.Audio
         private void HandleDoubleJump() => AudioManager.Instance?.PlaySfx(SfxId.DoubleJump);
 
         // The event carries an impact magnitude; play softer the softer the landing so
-        // a small hop does not sound like a slam. No AudioMixer is authored yet, so
-        // volume comes from the sfx volume scale rather than a mixer group.
+        // a small hop does not sound like a slam. The per-call volume scale handles
+        // that, independent of the Sfx mixer bus.
         private void HandleLand(float impact)
         {
             var audio = AudioManager.Instance;

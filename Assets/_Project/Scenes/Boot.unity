@@ -161,11 +161,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9a3d312afbc5540baadb92d57e577565, type: 2}
   - {fileID: 11400000, guid: 1781b16a4db8846609c4638b53762062, type: 2}
   generatedArtCatalog: {fileID: 11400000, guid: 652bf7fe9dcc64640a3019fc83c22a8f, type: 2}
+  uiFont: {fileID: 0}
   audioLibrary: {fileID: 11400000, guid: 2c2af69b9a3570f4e9ef6e8304a2e3d4, type: 2}
-  audioMixer: {fileID: 0}
-  musicMixerGroup: {fileID: 0}
-  sfxMixerGroup: {fileID: 0}
-  ambientMixerGroup: {fileID: 0}
+  audioMixer: {fileID: 24100000, guid: 570e061c4f026b047877c708edaa2c35, type: 2}
+  musicMixerGroup: {fileID: -3012855260904871596, guid: 570e061c4f026b047877c708edaa2c35, type: 2}
+  sfxMixerGroup: {fileID: 630007490639636346, guid: 570e061c4f026b047877c708edaa2c35, type: 2}
+  ambientMixerGroup: {fileID: 4084172976657334793, guid: 570e061c4f026b047877c708edaa2c35, type: 2}
 --- !u!4 &61646647
 Transform:
   m_ObjectHideFlags: 0

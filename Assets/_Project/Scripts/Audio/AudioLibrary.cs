@@ -4,7 +4,7 @@ using CatCourier.Core;
 
 namespace CatCourier.Audio
 {
-    [CreateAssetMenu(fileName = "AudioLibrary", menuName = "Cat Courier/Audio Library")]
+    [CreateAssetMenu(fileName = "AudioLibrary", menuName = "Purrcel/Audio Library")]
     public sealed class AudioLibrary : ScriptableObject
     {
         [Serializable]
