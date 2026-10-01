@@ -71,16 +71,6 @@ namespace CatCourier.Obstacles
             }
         }
 
-        public void Activate()
-        {
-            SetChunkActive(true);
-        }
-
-        public void Deactivate()
-        {
-            SetChunkActive(false);
-        }
-
         protected void InitializeIfNeeded()
         {
             if (initialized)

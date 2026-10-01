@@ -47,14 +47,14 @@ The game runs in Unity `2022.3.62f3`. The Game scene has a playable fallback rou
 | UI presenters (hub, HUD, pause, death) | Complete (IMGUI placeholders) |
 | Persistence with atomic writes and recovery | Complete |
 
-Latest macOS editor verification: **79/79 EditMode tests** and **28/28 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, and checks that the Hub has a painted camera view. An earlier Windows Android development build passed; this art and gameplay update has not been rebuilt for Android.
+Latest Windows editor verification: **91/91 EditMode tests** and **30/30 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, checks that the Hub has a painted camera view, and proves an abandoned run still banks its coins. An earlier Windows Android development build passed; this art and gameplay update has not been rebuilt for Android.
 
 ## What is not finished yet
 
 These are content and account gates, not code defects. Nothing in this repository claims otherwise:
 
 - **Authored chunk prefabs.** `ChunkCatalog.asset` is empty. The fallback route now streams varied jump, slide, falling and pit hazards with coins, special coins and a shield booster. Its pit is a painted road opening with a gameplay trigger over continuous collision ground; authored gap geometry still needs work.
-- **Art and UI polish.** Five painted cats, districts, roads and gameplay objects are integrated. Some menus still use IMGUI and need final layout and device review.
+- **Art and UI polish.** Five painted cats, districts, roads and gameplay objects are integrated. Every menu is still IMGUI, laid out against the safe area but not a shipping interface.
 - **Audio clips and mixer.** The audio system is fully wired and silent-safe, but no clip assets exist yet.
 - **A real ad SDK.** Only a deterministic fake backend ships. Ad serving is a provider decision; see [Economy and monetization](#economy-and-monetization).
 - **Real RevenueCat sandbox purchases, restore, and trial metadata.** These require local public sandbox keys and a physical device.
@@ -260,10 +260,10 @@ Writes are atomic: serialize to a temporary file, validate it can be read back, 
 ### Unity Test Runner
 
 1. Open **Window > General > Test Runner**.
-2. Select **EditMode**, run all — 80 tests.
-3. Select **PlayMode**, run all — 28 tests.
+2. Select **EditMode**, run all — 91 tests.
+3. Select **PlayMode**, run all — 30 tests.
 
-The PlayMode suite proves save-path isolation by snapshotting `Application.persistentDataPath` and failing if it changes.
+The PlayMode suite proves save-path isolation by snapshotting `Application.persistentDataPath` and failing if it changes. Every PlayMode fixture inherits that harness, including the ones that load the real scenes.
 
 ### Command line
 
@@ -344,8 +344,8 @@ Assets/_Project/Scripts/Audio/         audio manager, library, event relay
 Assets/_Project/Editor/                idempotent setup and release readiness validation
 Assets/_Project/Config/                chunk catalog, audio library, local RevenueCat config
 Assets/_Project/Scenes/                Boot, Hub, Game
-Assets/Tests/EditMode/                 79 fast tests
-Assets/Tests/PlayMode/                 17 scene and lifecycle tests
+Assets/Tests/EditMode/                 91 fast tests
+Assets/Tests/PlayMode/                 30 scene and lifecycle tests
 Tools/                                 local verification scripts
 HANDOFF.md                             open questions, blockers, and delivery status
 ```

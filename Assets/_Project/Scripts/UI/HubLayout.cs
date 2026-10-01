@@ -24,20 +24,6 @@ namespace CatCourier.UI
             }
         }
 
-        /// <summary>A rect inset from <see cref="SafeRect"/> on every edge.</summary>
-        public static Rect SafeArea(float margin = 0f)
-        {
-            var safe = SafeRect;
-            margin = Mathf.Max(0f, margin);
-            var rect = new Rect(
-                safe.x + margin,
-                safe.y + margin,
-                Mathf.Max(1f, safe.width - margin * 2f),
-                Mathf.Max(1f, safe.height - margin * 2f));
-            // Unity draws IMGUI areas from the top-left; safeArea.y is bottom-up.
-            return new Rect(rect.x, Screen.height - rect.yMax, rect.width, rect.height);
-        }
-
         public static Rect ContentRect
         {
             get

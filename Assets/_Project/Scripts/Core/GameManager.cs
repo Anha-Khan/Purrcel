@@ -186,6 +186,15 @@ namespace CatCourier.Core
         /// </summary>
         public void AbandonRun()
         {
+            // Only a run that is actually in progress can be abandoned. Without this the
+            // pause menu's button was idempotent by accident: the first AbandonRun
+            // finalized the run and returned to the Hub, and a second call re-read the
+            // same RunCoins and banked them again.
+            if (State != GameState.Paused && State != GameState.Running && State != GameState.Dead)
+            {
+                return;
+            }
+
             if (hasPendingRunResult)
             {
                 return;

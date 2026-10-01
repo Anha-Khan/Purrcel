@@ -20,11 +20,12 @@
 
 - RevenueCat SDK cannot execute in the Unity Editor; Android sandbox device execution is still required for the Day 1 spike.
 - No connected Android device or emulator with ADB was detected for purchase, restore, customer-info, touch, animation-visibility, collision, or frame-stability checks.
-- Day 1 SDK details and go/no-go decision are recorded in `docs/revenuecat-spike.md`: RevenueCat purchases supported on Android/iOS; RevenueCat is not a Unity ad-serving SDK; use AdMob for serving.
+- Day 1 SDK details and go/no-go decision were recorded in the local `docs/revenuecat-spike.md`, which is gitignored and not part of this repository: RevenueCat purchases are supported on Android/iOS; RevenueCat is not a Unity ad-serving SDK; use AdMob for serving.
 - RevenueCat Ads does not provide a Unity ad-serving SDK. Current docs describe AdMob integration and RevenueCat ad-event/reward tracking. Use AdMob directly on Day 5 after availability spike; keep `IAdBackend` abstraction.
-- Day 6 remaining blockers, all content or account side, confirmed by `Cat Courier > Validate > Release Readiness`: `ChunkCatalog.asset` is empty, Harbour and Suburbs have no authored chunks, there are no `AudioClip` or `AudioMixer` assets, and no `CatBreedConfig` assets exist. Code paths for all of them are wired and safe when empty.
+- Day 6 remaining blockers, all content or account side, confirmed by `Cat Courier > Validate > Release Readiness`: `ChunkCatalog.asset` is empty, Harbour and Suburbs have no authored chunks, and there are no `AudioClip` or `AudioMixer` assets. The `CatBreedConfig` blocker is resolved: the generated art installer now creates five breed assets. Code paths for the rest are wired and safe when empty.
 - Day 6 checks that cannot be automated here: Android and iOS device runs, real RevenueCat sandbox purchase/restore/trials, touch and animation-visibility feel, and representative-hardware frame pacing.
-- Day 6 PlayMode suite stubs scene loading, so real Hub and Game scene wiring plus `RunCoordinator` serialized references are verified by manual play only.
+- Day 6 PlayMode suite stubs scene loading, so real Hub and Game scene wiring plus `RunCoordinator` serialized references are verified by manual play only. `GameScenePlayabilityTests` and `GeneratedCatArtTests` are the exceptions: they load the real scenes additively, so they inherit the harness save-path guard.
+- `Next Gen` submission blockers: the `harbour_unlock` and `suburbs_unlock` packs unlock districts that already unlock free at 600 m and 1200 m. The reach gates are now single-sourced in `RunLoadoutService`, and the packs must grant an additive bonus; the bonus constants are declared but not yet wired into the coin pipeline.
 
 ## Done hand-offs
 
