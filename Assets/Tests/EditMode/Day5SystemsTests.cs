@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using CatCourier.Audio;
 using CatCourier.Coins;
@@ -241,8 +242,9 @@ namespace CatCourier.Tests
             {
                 var audio = host.AddComponent<AudioManager>();
 
-                // The project ships no clips, so the empty-library path is the real
-                // shipping configuration. It must not throw and must report no music.
+                // The null-library path is still the shipping configuration for a player
+                // whose audio assets failed to import. It must not throw and must
+                // report no music rather than claiming something is playing.
                 Assert.DoesNotThrow(() => audio.PlaySfx(SfxId.Jump));
                 Assert.DoesNotThrow(() => audio.PlayMusic(MusicId.Hub));
                 Assert.DoesNotThrow(() => audio.PlayAmbient(SfxId.Death));
@@ -282,6 +284,13 @@ namespace CatCourier.Tests
                 audio.PlayMusic(MusicId.Hub);
                 Assert.That(audio.CurrentMusic, Is.EqualTo(MusicId.Hub),
                     "A configured track must actually become the current music.");
+
+                // Music is a bed, not a one-shot. CreateSource sets loop = false and
+                // PlayMusic used to leave it there, so every track stopped after one pass.
+                var musicSlot = audio.GetComponentsInChildren<AudioSource>(true)
+                    .FirstOrDefault(source => source.clip == clip && source.loop);
+                Assert.That(musicSlot, Is.Not.Null,
+                    "A music bed must loop; otherwise the track ends and silence follows.");
 
                 // Muting must silence it without losing the library wiring.
                 audio.SetMuted(true);

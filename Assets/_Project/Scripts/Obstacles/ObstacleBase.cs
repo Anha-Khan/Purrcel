@@ -55,26 +55,6 @@ namespace CatCourier.Obstacles
             ResetRuntimeState();
         }
 
-        public void SetChunkActive(bool active)
-        {
-            chunkActive = active;
-            if (active)
-            {
-                if (!gameObject.activeSelf)
-                {
-                    gameObject.SetActive(true);
-                }
-                else
-                {
-                    ResetForChunk();
-                }
-            }
-            else
-            {
-                gameObject.SetActive(false);
-            }
-        }
-
         protected void InitializeIfNeeded()
         {
             if (initialized)
@@ -94,6 +74,15 @@ namespace CatCourier.Obstacles
         protected virtual void ResetRuntimeState()
         {
         }
+
+        /// <summary>
+        /// True when the hazard is meant to be ducked under rather than jumped.
+        ///
+        /// Cargo and the overhead drone are both <see cref="StaticObstacle"/>, so nothing
+        /// but the object name told them apart and the drone could simply be jumped like
+        /// cargo. That intent now lives in a field a test can assert.
+        /// </summary>
+        public bool requiresDuckUnder;
 
         protected static PlayerController FindPlayer(Collider2D other)
         {

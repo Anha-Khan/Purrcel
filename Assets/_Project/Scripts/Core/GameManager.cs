@@ -160,6 +160,11 @@ namespace CatCourier.Core
             continuePending = false;
             hasPendingRunResult = false;
             ContinuesLeft--;
+            // Every other exit from a frozen state restores the time scale explicitly
+            // (ResumeRun, EndRun, OnDestroy). Without it the world stays at timeScale 0
+            // from the death pause: the HUD keeps updating and the run looks alive, but
+            // FixedUpdate never ticks, so a jump sets a velocity nothing ever integrates.
+            Time.timeScale = 1f;
             SetState(GameState.Running);
             RunCoordinator.Active?.RespawnFromContinue();
             return true;

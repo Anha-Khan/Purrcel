@@ -51,18 +51,6 @@ namespace CatCourier.Obstacles
             RecalculatePatrolSpeed();
         }
 
-        public void SetPatrolWidth(float value)
-        {
-            patrolWidth = Mathf.Max(0f, value);
-            ResetForChunk();
-        }
-
-        public void SetPatrolSpeed(float value)
-        {
-            patrolSpeed = Mathf.Max(0f, value);
-            RecalculatePatrolSpeed();
-        }
-
         public void SetDifficultyManager(DifficultyManager manager)
         {
             if (difficultyManager == manager)

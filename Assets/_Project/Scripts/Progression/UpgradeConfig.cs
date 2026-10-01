@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace CatCourier.Progression
 {
-    [CreateAssetMenu(fileName = "Upgrade", menuName = "Cat Courier/Upgrade Config")]
+    [CreateAssetMenu(fileName = "Upgrade", menuName = "Purrcel/Upgrade Config")]
     public sealed class UpgradeConfig : ScriptableObject
     {
         public string id;

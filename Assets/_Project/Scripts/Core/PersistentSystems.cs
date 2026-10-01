@@ -15,6 +15,10 @@ namespace CatCourier.Core
         [SerializeField] private Progression.CatBreedConfig[] generatedCatBreeds;
         [SerializeField] private CatCourier.Art.GeneratedArtCatalog generatedArtCatalog;
 
+        [Header("UI (optional)")]
+        [Tooltip("Optional override. When empty, the bundled PurrcelUI font is loaded from Resources.")]
+        [SerializeField] private Font uiFont;
+
         [Header("Audio (authored, optional)")]
         [SerializeField] private Audio.AudioLibrary audioLibrary;
         [SerializeField] private UnityEngine.Audio.AudioMixer audioMixer;
@@ -39,6 +43,15 @@ namespace CatCourier.Core
             generatedArtCatalog?.Activate();
             EnsureManager<Progression.UpgradeManager>(transform);
             EnsureManager<Monetization.AdManager>(transform);
+            // Namespace is UI, resolved from the enclosing CatCourier namespace the same way
+            // UI.PaywallPresenter is below. The font lives in Resources so no scene
+            // reference is needed and a missing asset degrades to Arial rather than
+            // breaking every surface.
+            // Plus Jakarta Sans (SIL OFL 1.1) under Assets/_Project/Resources. Bundled rather
+            // than wired into a scene so a fresh clone styles correctly with no setup, and
+            // loaded by name so a missing file degrades to IMGUI's built-in Arial. The name
+            // lives in one place so a rename cannot leave this loader pointing at nothing.
+            UI.UiTheme.SetFont(uiFont != null ? uiFont : Resources.Load<Font>(UI.UiTheme.BundledFontName));
             ApplyAudioConfiguration();
             ApplyContentReferences();
         }
@@ -76,7 +89,22 @@ namespace CatCourier.Core
                 ? revenueCatConfig.ShouldUseFakeBackend()
                 : useFakeMonetizationInEditor;
             WarnOnMissingRevenueCatConfig(useFakeBackend);
-            revenueCat?.Initialize(revenueCatConfig, useFakeBackend);
+            // Start is a coroutine and an unhandled exception in one is swallowed: the
+            // rest of this method never runs, so Load(Hub) below is never reached and the
+            // player stares at an empty Boot scene with no error anywhere. That is exactly
+            // what the first real-backend device build did. A purchase SDK failing to
+            // configure must never stop the game from starting.
+            try
+            {
+                revenueCat?.Initialize(revenueCatConfig, useFakeBackend);
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogError(
+                    "Purrcel: RevenueCat failed to initialise, so purchases are unavailable this " +
+                    "session. The game will still start. Cause: " + exception);
+            }
+
             SceneLoader.Instance.OnSceneLoadFinished += HandleSceneLoadFinished;
             yield return null;
             SceneLoader.Instance?.Load(SceneNames.Hub);
@@ -96,8 +124,8 @@ namespace CatCourier.Core
 
             Debug.LogError(
                 "Purrcel: no RevenueCat config asset is assigned, so this build uses FAKE purchases. " +
-                "Run Cat Courier > Setup > Create Local RevenueCat Config, then " +
-                "Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo, and paste your " +
+                "Run Purrcel > Setup > Create Local RevenueCat Config, then " +
+                "Purrcel > Setup > Use Real RevenueCat for Next Gen Demo, and paste your " +
                 "Test Store public key. A release build is unaffected: it always uses the real backend.");
         }
 

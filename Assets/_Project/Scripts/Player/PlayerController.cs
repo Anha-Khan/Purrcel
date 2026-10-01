@@ -526,7 +526,12 @@ namespace CatCourier.Player
             // overlap the cat for a physics step at takeoff, before the feet have
             // visibly cleared the art. Ignore that contact while rising, then use
             // the actual bounds on descent so landing into a hazard still hurts.
-            if (!bounce && IsClearingLowRoadObstacle(obstacle))
+            //
+            // An overhead hazard is the exception: it must be ducked, never jumped, so
+            // the forgiveness below must not apply to it.
+            var duckUnder = obstacle != null && obstacle.GetComponent<ObstacleBase>() is
+                { requiresDuckUnder: true };
+            if (!bounce && !duckUnder && IsClearingLowRoadObstacle(obstacle))
             {
                 return;
             }

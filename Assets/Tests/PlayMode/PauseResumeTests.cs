@@ -96,8 +96,12 @@ namespace CatCourier.Tests.PlayMode
             // positions, so the snapshot is only meaningful after the player has covered
             // more ground than the window is wide. One chunk is not enough: the rearmost
             // chunk is recycled at CHUNK_WIDTH past the camera's left edge.
+            // Bounded. An unbounded wait here hangs the entire suite rather than failing one
+            // test: a paused-or-dead player never increases DistanceMeters, and the
+            // run produced no report at all. Fail with the reason instead.
             var travelled = 0f;
-            while (travelled < Constants.CHUNK_WIDTH * 2f)
+            var deadline = Time.unscaledTime + 30f;
+            while (travelled < Constants.CHUNK_WIDTH * 2f && Time.unscaledTime < deadline)
             {
                 yield return new WaitForFixedUpdate();
                 travelled = player.DistanceMeters - pausedDistance;
@@ -105,6 +109,10 @@ namespace CatCourier.Tests.PlayMode
                 // once the camera has actually followed the runner.
                 camera.transform.position = new Vector3(player.DistanceMeters, 0f, 0f);
             }
+
+            Assert.That(travelled, Is.GreaterThanOrEqualTo(Constants.CHUNK_WIDTH * 2f),
+                $"The player never covered two chunk widths after resume (state {game.State}, " +
+                $"player {player.State}, moved {travelled:0.0} m).");
 
             var resumedChunks = SnapshotActiveChunks(manager);
             Assert.That(

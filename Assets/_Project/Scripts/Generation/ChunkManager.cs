@@ -5,6 +5,13 @@ using CatCourier.Core;
 
 namespace CatCourier.Generation
 {
+    /// <summary>
+    /// Implemented by components that live on pooled chunks and need to know when their
+    /// chunk is taken from or returned to the pool.
+    ///
+    /// This is the ONLY way ChunkManager notifies them. A pooled component that does not
+    /// implement this is never notified and will keep stale state between reuses.
+    /// </summary>
     public interface IChunkPoolResettable
     {
         void OnChunkActivated();
@@ -139,25 +146,6 @@ namespace CatCourier.Generation
             {
                 paused = false;
             }
-        }
-
-        public bool ResetGeneration(int newSeed)
-        {
-            seed = newSeed;
-            if (generator == null || catalog == null)
-            {
-                return false;
-            }
-
-            ReturnAllActiveChunks();
-            generator.Initialize(catalog, seed, initialDistrict, GetEligibleDistricts(), doubleJumpLevel);
-            RefreshUnlockedDistricts();
-            CurrentDistrict = generator.CurrentDistrict;
-            running = true;
-            paused = false;
-            EnsureChunkContainer();
-            MaintainChunks();
-            return true;
         }
 
         public void SetDifficulty(int difficultyLevel)
@@ -507,6 +495,17 @@ namespace CatCourier.Generation
             OnDistrictChanged?.Invoke(district);
         }
 
+        /// <summary>
+        /// Publishes a checkpoint that did not come from an authored chunk. The fallback
+        /// route has no ChunkMarker, so HandleCheckpointReached cannot serve it, but the
+        /// delivery, scoring and story-beat pipeline downstream must still run.
+        /// </summary>
+        public void RaiseExternalCheckpoint(DistrictId district, int checkpointIndex, StoryBeat storyBeat)
+        {
+            CurrentDistrict = district;
+            OnCheckpointReached?.Invoke(district, checkpointIndex, storyBeat);
+        }
+
         private void HandleCheckpointReached(CheckpointMarker checkpoint)
         {
             if (checkpoint == null)
@@ -546,10 +545,18 @@ namespace CatCourier.Generation
             return null;
         }
 
+        /// <summary>
+        /// Notifies every pooled pickup on a chunk that it is being activated or returned.
+        ///
+        /// Dispatch is by interface only. There used to be a SendMessage fallback for
+        /// components that had not been migrated, but both receivers implement
+        /// IChunkPoolResettable, so the branch could never reach anything — it only looked
+        /// like a working dispatch path. A new pooled component must implement the
+        /// interface, or it will silently never be reset.
+        /// </summary>
         private void SetChunkState(GameObject chunk, bool active)
         {
             var behaviours = chunk.GetComponentsInChildren<MonoBehaviour>(true);
-            var resetByInterface = false;
             foreach (var behaviour in behaviours)
             {
                 if (!(behaviour is IChunkPoolResettable resettable))
@@ -557,7 +564,6 @@ namespace CatCourier.Generation
                     continue;
                 }
 
-                resetByInterface = true;
                 if (active)
                 {
                     resettable.OnChunkActivated();
@@ -566,11 +572,6 @@ namespace CatCourier.Generation
                 {
                     resettable.OnChunkDeactivated();
                 }
-            }
-
-            if (!resetByInterface)
-            {
-                chunk.SendMessage(active ? "OnChunkActivated" : "OnChunkDeactivated", SendMessageOptions.DontRequireReceiver);
             }
         }
 

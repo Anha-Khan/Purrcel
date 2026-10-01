@@ -30,7 +30,7 @@ namespace CatCourier.Art
         public int blockCount;
     }
 
-    [CreateAssetMenu(fileName = "GeneratedArtCatalog", menuName = "Cat Courier/Generated Art Catalog")]
+    [CreateAssetMenu(fileName = "GeneratedArtCatalog", menuName = "Purrcel/Generated Art Catalog")]
     public sealed class GeneratedArtCatalog : ScriptableObject
     {
         public static GeneratedArtCatalog Active { get; private set; }

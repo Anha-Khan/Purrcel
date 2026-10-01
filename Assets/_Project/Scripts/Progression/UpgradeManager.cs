@@ -48,13 +48,6 @@ namespace CatCourier.Progression
             Refresh();
         }
 
-        public void SetBreedManager(CatBreedManager manager)
-        {
-            UnsubscribeFromBreeds();
-            breeds = manager;
-            Refresh();
-        }
-
         public UpgradeConfig Get(string id)
         {
             return !string.IsNullOrEmpty(id) && byId.TryGetValue(id, out var config) ? config : null;
@@ -115,8 +108,6 @@ namespace CatCourier.Progression
             var cost = GetNextCost(id);
             return cost >= 0 && (SaveSystem.Instance?.Data?.totalCoins ?? 0) >= cost;
         }
-
-        public int GetMaxLevel(string id) => Get(id)?.maxLevel ?? -1;
 
         public bool IsMaxLevel(string id)
         {

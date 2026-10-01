@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace CatCourier.Progression
 {
-    [CreateAssetMenu(fileName = "CatBreed", menuName = "Cat Courier/Cat Breed Config")]
+    [CreateAssetMenu(fileName = "CatBreed", menuName = "Purrcel/Cat Breed Config")]
     public sealed class CatBreedConfig : ScriptableObject
     {
         public string id;

@@ -20,19 +20,9 @@ namespace CatCourier.Obstacles
             speedMultiplierOnHit = 1f;
         }
 
-        public void SetTarget(Transform target)
-        {
-            playerTarget = target;
-        }
-
         public void SetPlayerTarget(PlayerController player)
         {
             playerTarget = player != null ? player.transform : null;
-        }
-
-        public void SetRollingSpeed(float value)
-        {
-            rollingSpeed = Mathf.Max(0f, value);
         }
 
         public void Simulate(float deltaTime)

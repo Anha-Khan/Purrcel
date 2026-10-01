@@ -46,17 +46,6 @@ namespace CatCourier.Monetization
             return string.IsNullOrEmpty(id) || activeEntitlements.Contains(id);
         }
 
-        public void RefreshAll(Action<bool> completed = null)
-        {
-            if (RevenueCatManager.Instance == null)
-            {
-                completed?.Invoke(false);
-                return;
-            }
-
-            RevenueCatManager.Instance.RefreshCustomerInfo(completed ?? (_ => { }));
-        }
-
         public void SetEntitlements(IEnumerable<string> entitlements)
         {
             activeEntitlements.Clear();

@@ -31,7 +31,7 @@ namespace CatCourier.Editor
             "Ginger Tabby", "Midnight Black", "Odd-Eyed Ivory", "Mosaic Calico", "Bricklane Tuxedo"
         };
 
-        [MenuItem("Cat Courier/Art/Install Generated Art", priority = 50)]
+        [MenuItem("Purrcel/Art/Install Generated Art", priority = 50)]
         public static void Install()
         {
             if (!AssetDatabase.IsValidFolder(Root.TrimEnd('/')))
@@ -45,7 +45,7 @@ namespace CatCourier.Editor
             WireBoot(breeds, art);
             WireGame(art);
             AssetDatabase.SaveAssets();
-            Debug.Log("Generated Cat Courier art installed: five selectable cats, package, obstacles, coin, animated scenery, sky and weather. Open Game scene to review.");
+            Debug.Log("Generated Purrcel art installed: five selectable cats, package, obstacles, coin, animated scenery, sky and weather. Open Game scene to review.");
         }
 
         private static GeneratedArtCatalog BuildCatalog()
@@ -220,7 +220,7 @@ namespace CatCourier.Editor
             var camera = Camera.main;
             if (root == null || player == null || camera == null)
             {
-                Debug.LogError("Run Cat Courier > Setup > Apply All before installing art; the Game scene is incomplete.");
+                Debug.LogError("Run Purrcel > Setup > Apply All before installing art; the Game scene is incomplete.");
                 return;
             }
 

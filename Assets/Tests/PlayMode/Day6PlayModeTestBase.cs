@@ -10,6 +10,7 @@ using CatCourier.Monetization;
 using CatCourier.Player;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace CatCourier.Tests.PlayMode
@@ -145,6 +146,19 @@ namespace CatCourier.Tests.PlayMode
 
             created.Clear();
             ResetStatics();
+
+            // Tests that load a real scene unload it inline, after their asserts. An
+            // assert failure skips that unload, so a failed scene test left the scene
+            // loaded and every later test failed too, with its own message hiding the
+            // cause. Unload anything still open, whatever the test did.
+            for (var index = SceneManager.sceneCount - 1; index >= 0; index--)
+            {
+                var scene = SceneManager.GetSceneAt(index);
+                if (scene.isLoaded && scene.name != "DontDestroyOnLoad")
+                {
+                    SceneManager.UnloadSceneAsync(scene);
+                }
+            }
 
             if (!string.IsNullOrEmpty(TempDirectory) && Directory.Exists(TempDirectory))
             {

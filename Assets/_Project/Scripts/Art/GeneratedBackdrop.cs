@@ -116,6 +116,10 @@ namespace CatCourier.Art
                 fallbackContent.GetComponentInChildren<StaticObstacle>(true),
                 fallbackContent.GetComponentInChildren<BounceObstacle>(true),
                 fallbackContent.GetComponentInChildren<CatCourier.Coins.CoinPickup>(true), catalog);
+            // The fallback route emits its own checkpoints, so it needs a ChunkManager to
+            // publish through. RunCoordinator turns that into deliveries, score,
+            // story cards and district unlocks exactly as it does for authored chunks.
+            fallbackObstacleSpawner.chunkManager = chunks;
         }
 
         private void LateUpdate()

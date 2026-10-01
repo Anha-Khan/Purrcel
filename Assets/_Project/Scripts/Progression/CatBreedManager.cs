@@ -19,7 +19,7 @@ namespace CatCourier.Progression
         public const string TuxedoId = "tuxedo";
 
         public const string UnknownBreedReason = "Cat breed unavailable.";
-        public const string PremiumRequiredReason = "Requires Cat Courier Premium.";
+        public const string PremiumRequiredReason = "Requires Purrcel Premium.";
         public const string ExtraPackRequiredReason = "Requires an extra pack.";
         public const string ComingSoonReason = "Coming soon.";
 

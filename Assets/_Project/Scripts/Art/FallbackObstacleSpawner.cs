@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CatCourier.Coins;
 using CatCourier.Core;
+using CatCourier.Generation;
 using CatCourier.Obstacles;
 using CatCourier.Player;
 using UnityEngine;
@@ -11,10 +12,19 @@ namespace CatCourier.Art
     /// <summary>Streams a playable route while the authored chunk catalog is empty.</summary>
     public sealed class FallbackObstacleSpawner : MonoBehaviour
     {
-        private enum HazardKind { Low, Overhead, Pit, Falling }
+        /// <summary>
+        /// Publishes district and delivery state for a checkpoint. Set by GeneratedBackdrop
+        /// because the fallback route has no ChunkMarker of its own.
+        /// </summary>
+        public ChunkManager chunkManager;
+
+        // PatrolObstacle is a deadly moving drone. It is not spawned here: it needs feel
+        // tuning on a real device, and a lethal hazard the auto-player cannot read would
+        // make runs unwinnable rather than harder. It remains authored-chunk-only.
+        private enum HazardKind { Low, Overhead, Pit, Falling, Stumble }
 
         private readonly List<GameObject> spawned = new();
-        private readonly HazardKind[] bag = new HazardKind[4];
+        private readonly HazardKind[] bag = new HazardKind[5];
         private Transform fallbackRoot;
         private PlayerController player;
         private Camera gameplayCamera;
@@ -26,6 +36,9 @@ namespace CatCourier.Art
         private float nextSpawnX;
         private float nextSpecialX;
         private float nextBoostX;
+        private float nextCheckpointX;
+        private int checkpointIndex;
+        private int districtCursor;
         private int sequence;
         private System.Random random;
         private bool configured;
@@ -78,6 +91,7 @@ namespace CatCourier.Art
             nextSpawnX = Mathf.Max(27f, runner.DistanceMeters + 27f);
             nextSpecialX = 60f;
             nextBoostX = 105f;
+            nextCheckpointX = runner.DistanceMeters + Constants.CHECKPOINT_INTERVAL;
             configured = fallbackRoot != null && player != null && gameplayCamera != null &&
                          staticTemplate != null && coinTemplate != null;
             if (!configured) return;
@@ -112,6 +126,11 @@ namespace CatCourier.Art
             var safety = 0;
             while (nextSpawnX <= spawnThrough && safety++ < 8)
                 SpawnNext();
+            while (nextCheckpointX <= spawnThrough)
+            {
+                SpawnCheckpoint(nextCheckpointX);
+                nextCheckpointX += Constants.CHECKPOINT_INTERVAL;
+            }
             // Re-anchor the reward cursors when the interval shrinks, so a tightening
             // curve never stacks two rewards on the same metre.
             var specialInterval = Mathf.RoundToInt(SpecialCoinInterval(player.DistanceMeters));
@@ -158,6 +177,20 @@ namespace CatCourier.Art
             if (sequence > 0 && sequence % bag.Length == 0) ShuffleBag();
             var kind = bag[sequence % bag.Length];
             var x = nextSpawnX;
+
+            // A checkpoint needs clear road around it so the delivery reads as a
+            // breather and the player is never asked to jump into one. Coins only,
+            // no hazard, and the bag cursor still advances so the skip does not make
+            // one hazard type appear twice in a row.
+            if (Mathf.Abs(x - nextCheckpointX) < CheckpointClearRadius)
+            {
+                sequence++;
+                nextSpawnX += Mathf.Max(SpacingRange(player.DistanceMeters).x, 4.5f);
+                SpawnCoin(x, 0.45f, false);
+                SpawnCoin(x + 2.2f, 0.45f, false);
+                return;
+            }
+
             var spacing = Mathf.Lerp(SpacingRange(player.DistanceMeters).x,
                 SpacingRange(player.DistanceMeters).y, (float)random.NextDouble());
             switch (kind)
@@ -166,6 +199,7 @@ namespace CatCourier.Art
                 case HazardKind.Overhead: SpawnOverhead(x); break;
                 case HazardKind.Pit: SpawnPit(x); break;
                 case HazardKind.Falling: SpawnLow(x, true); break;
+                case HazardKind.Stumble: SpawnStumble(x); break;
             }
             if (kind == HazardKind.Overhead)
             {
@@ -220,15 +254,41 @@ namespace CatCourier.Art
             spawned.Add(clone);
         }
 
+        /// <summary>
+        /// Underside of an overhead hazard's collider, in world Y.
+        ///
+        /// The cat stands 1.0 tall with its transform at y=0.4, so its head reaches 0.9 and
+        /// a slide drops it to 0.3. This sits between the two: a running cat must duck, a
+        /// sliding cat passes.
+        /// </summary>
+        public const float OverheadHazardBottom = 0.75f;
+
+        /// <summary>
+        /// Top of an overhead hazard's collider. A single jump peaks at 0.4 + 14^2/64 =
+        /// 3.46, and a double jump at about 5.35, so a collider ending here cannot be
+        /// jumped over at any upgrade level. Without this the drone behaved exactly like
+        /// cargo: the only way past it was a jump.
+        /// </summary>
+        public const float OverheadHazardTop = 7f;
+
         private void SpawnOverhead(float x)
         {
             var hazard = new GameObject("Slide Under Drone");
             hazard.transform.SetParent(fallbackRoot, false);
-            hazard.transform.position = new Vector3(x, 0.78f, 0f);
-            hazard.AddComponent<StaticObstacle>();
+            hazard.transform.position = new Vector3(x, OverheadHazardBottom, 0f);
+            var obstacle = hazard.AddComponent<StaticObstacle>();
+            obstacle.requiresDuckUnder = true;
+
+            // The collider is a curtain hanging from the drone up into the sky, not a box
+            // around its painted body. The art stays at the hazard's own height; only the
+            // trigger is tall, so the drone reads as something you duck under and cannot
+            // leap over.
             var hitbox = hazard.AddComponent<BoxCollider2D>();
             hitbox.isTrigger = true;
-            hitbox.size = new Vector2(1.15f, 0.42f);
+            var height = OverheadHazardTop - OverheadHazardBottom;
+            hitbox.size = new Vector2(1.15f, height);
+            hitbox.offset = new Vector2(0f, height * 0.5f);
+
             AddLoop(hazard.transform, "Drone Art", art?.modernDroneFrames, 0.2f, 46);
             spawned.Add(hazard);
         }
@@ -244,6 +304,81 @@ namespace CatCourier.Art
             hitbox.size = new Vector2(1.5f, 0.7f);
             AddPitArt(pit.transform);
             spawned.Add(pit);
+        }
+
+        /// <summary>Metres of clear road either side of a checkpoint.</summary>
+        public const float CheckpointClearRadius = 7f;
+
+        /// <summary>
+        /// A delivery point. Without these the shipped route never delivered a parcel,
+        /// so package scoring, the story cards and district progression were all
+        /// unreachable at runtime.
+        /// </summary>
+        private void SpawnCheckpoint(float x)
+        {
+            var marker = new GameObject("Route Checkpoint");
+            marker.transform.SetParent(fallbackRoot, false);
+            marker.transform.position = new Vector3(x, 0f, 0f);
+            var trigger = marker.AddComponent<BoxCollider2D>();
+            trigger.isTrigger = true;
+            trigger.size = new Vector2(0.9f, 3.2f);
+
+            var index = ++checkpointIndex;
+            var district = NextCheckpointDistrict();
+            var checkpoint = marker.AddComponent<CheckpointMarker>();
+            checkpoint.Reached += _ => OnCheckpointReached(district, index);
+            AddLoop(marker.transform, "Checkpoint Art", art?.checkpointFrames, 0.5f, 47);
+            spawned.Add(marker);
+        }
+
+        /// <summary>
+        /// Rotates through the districts the player has actually unlocked, so a long run
+        /// walks from Old Town toward Downtown rather than staying put.
+        /// </summary>
+        private DistrictId NextCheckpointDistrict()
+        {
+            var eligible = DistrictUnlockService.GetEligible(player.DistanceMeters, false);
+            if (eligible == null || eligible.Length == 0)
+            {
+                return DistrictId.OldTown;
+            }
+
+            return eligible[Mathf.Min(districtCursor, eligible.Length - 1)];
+        }
+
+        private void OnCheckpointReached(DistrictId district, int index)
+        {
+            // RunCoordinator.HandleCheckpointReached already raises the story beat, so
+            // publishing here is the whole job. Raising it a second time from the
+            // spawner would show two story cards for one delivery.
+            var beat = StoryBeatService.GetFirstTimeBeat(district, index);
+            chunkManager?.RaiseExternalCheckpoint(district, index, beat);
+
+            districtCursor = Mathf.Min(districtCursor + 1, Mathf.Max(0, eligibleCount() - 1));
+        }
+
+        private int eligibleCount()
+        {
+            var eligible = DistrictUnlockService.GetEligible(player.DistanceMeters, false);
+            return eligible?.Length ?? 0;
+        }
+
+        /// <summary>
+        /// A non-lethal slowdown. Previously StumbleObstacle existed but was in no scene
+        /// and spawned by nothing, so its speed bug was unreachable and the obstacle type
+        /// never appeared in a run.
+        /// </summary>
+        private void SpawnStumble(float x)
+        {
+            var hazard = new GameObject("Loose Paving Stone");
+            hazard.transform.SetParent(fallbackRoot, false);
+            hazard.transform.position = new Vector3(x, 0.42f, 0f);
+            hazard.AddComponent<StumbleObstacle>();
+            var hitbox = hazard.AddComponent<BoxCollider2D>();
+            hitbox.isTrigger = true;
+            hitbox.size = new Vector2(0.7f, 0.35f);
+            AddLoop(hazard.transform, "Stumble Art", art?.oldTownPaverFrames, 0.22f, 45);
+            spawned.Add(hazard);
         }
 
         private void SpawnCoin(float x, float y, bool special)

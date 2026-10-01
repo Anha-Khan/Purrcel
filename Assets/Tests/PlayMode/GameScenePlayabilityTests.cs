@@ -3,8 +3,11 @@ using System.Linq;
 using CatCourier.Art;
 using CatCourier.Coins;
 using CatCourier.Core;
+using CatCourier.Generation;
 using CatCourier.Obstacles;
+using CatCourier.Packages;
 using CatCourier.Player;
+using CatCourier.Scoring;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -71,27 +74,40 @@ namespace CatCourier.Tests.PlayMode
             var simulatedSeconds = 0f;
             var lastHazard = string.Empty;
             var lastAction = string.Empty;
+            // One action per frame, and a jump leaves the cat unable to slide. So each frame
+            // work out both needs and serve the slide first: an overhead hazard is
+            // the one thing a jumping cat cannot answer.
             while (simulatedSeconds < 35f && player.DistanceMeters < 120f &&
                    player.State != PlayerState.Dead)
             {
                 var ahead = fallback.GetComponentsInChildren<MonoBehaviour>()
                     .Where(component => component is StaticObstacle || component is PitHazard)
                     .Where(component => component.transform.position.x > player.DistanceMeters)
-                    .OrderBy(component => component.transform.position.x).FirstOrDefault();
-                if (ahead != null && player.IsGrounded)
+                    .OrderBy(component => component.transform.position.x).ToArray();
+                var overhead = ahead.FirstOrDefault(component => component.name.StartsWith("Slide Under"));
+                var ground = ahead.FirstOrDefault(component => !component.name.StartsWith("Slide Under"));
+                var overheadGap = overhead != null
+                    ? overhead.transform.position.x - player.DistanceMeters
+                    : float.MaxValue;
+                var groundGap = ground != null
+                    ? ground.transform.position.x - player.DistanceMeters
+                    : float.MaxValue;
+
+                if (ahead.Length > 0)
                 {
-                    var distance = ahead.transform.position.x - player.DistanceMeters;
-                    lastHazard = $"{ahead.name} at {ahead.transform.position.x:0.0}, distance {distance:0.0}";
-                    if (ahead.name.StartsWith("Slide Under") && distance < 2.1f)
-                    {
-                        lastAction = $"slide at {player.DistanceMeters:0.0}";
-                        player.RequestSlide();
-                    }
-                    else if (!ahead.name.StartsWith("Slide Under") && distance < 2.8f)
-                    {
-                        lastAction = $"jump at {player.DistanceMeters:0.0}";
-                        player.RequestJump();
-                    }
+                    lastHazard = $"{ahead[0].name} at {ahead[0].transform.position.x:0.0}, " +
+                                 $"next {(ahead[0].transform.position.x - player.DistanceMeters):0.0} m";
+                }
+
+                if (player.IsGrounded && overheadGap < 2.1f)
+                {
+                    lastAction = $"slide at {player.DistanceMeters:0.0}";
+                    player.RequestSlide();
+                }
+                else if (player.IsGrounded && groundGap < 2.8f && overheadGap > 6f)
+                {
+                    lastAction = $"jump at {player.DistanceMeters:0.0}";
+                    player.RequestJump();
                 }
 
                 yield return new WaitForFixedUpdate();
@@ -168,12 +184,17 @@ namespace CatCourier.Tests.PlayMode
             Assert.That(second.position.x, Is.EqualTo(82.5f).Within(0.05f));
             Assert.That(second.GetComponent<SpriteRenderer>().enabled, Is.True);
 
+            // StumbleObstacle counts as route content. It shares none of the base classes
+            // above, so leaving it out made the stream look short every time the bag
+            // dealt a stumble, which is one slot in five.
             var spawned = fallback.GetComponentsInChildren<MonoBehaviour>()
-                .Where(component => component is StaticObstacle || component is PitHazard)
+                .Where(component => component is StaticObstacle || component is PitHazard ||
+                    component is StumbleObstacle)
                 .Where(component => component.name.StartsWith("Low Road") ||
                     component.name.StartsWith("Falling Road") ||
                     component.name.StartsWith("Slide Under") ||
-                    component.name.StartsWith("Jump Road"))
+                    component.name.StartsWith("Jump Road") ||
+                    component.name.StartsWith("Loose Paving Stone"))
                 .OrderBy(component => component.transform.position.x).ToArray();
             Assert.That(spawned.Length, Is.GreaterThanOrEqualTo(4),
                 "The empty chunk catalog must still provide an obstacle stream.");
@@ -199,6 +220,86 @@ namespace CatCourier.Tests.PlayMode
                 .Any(component => (component is StaticObstacle || component is PitHazard) &&
                     component.transform.position.x > 170f), Is.True,
                 "Hazards must continue far into the run.");
+
+            yield return SceneManager.UnloadSceneAsync("Game");
+        }
+
+        /// <summary>
+        /// The fallback route emits its own checkpoints because ChunkManager only accepts
+        /// markers parented under a ChunkMarker with a catalog selection. Without them the
+        /// shipped game never delivered a parcel, so package scoring, the story cards and
+        /// district progression were all unreachable at runtime.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator FallbackRoute_SpawnsCheckpointsThatDeliver()
+        {
+            yield return SceneManager.LoadSceneAsync("Game", LoadSceneMode.Additive);
+            var fallback = GameObject.Find("Day2FallbackContent");
+            var player = Object.FindObjectOfType<PlayerController>();
+            var score = Object.FindObjectOfType<ScoreManager>();
+            var packages = Object.FindObjectOfType<PackageManager>();
+            Assert.That(fallback, Is.Not.Null);
+            Assert.That(player, Is.Not.Null);
+            Assert.That(packages, Is.Not.Null);
+
+            // RunCoordinator assigns the opening parcel in Start, which runs a frame after the
+            // scene finishes loading, so give it one before asserting.
+            for (var step = 0; step < 3; step++)
+            {
+                yield return null;
+            }
+
+            // A run starts with a parcel assigned, so the checkpoint has something to
+            // deliver. Assert it first: a delivery test that passes by delivering
+            // nothing is worse than no test.
+            Assert.That(packages.HasAssignedPackage, Is.True,
+                "A fresh run must carry a package, or a checkpoint delivery proves nothing.");
+
+            // The first checkpoint is a full CHECKPOINT_INTERVAL away and the spawner only
+            // streams ahead of the camera, so it does not exist yet at the start line.
+            // Stand the cat short of that distance and let a frame stream it in.
+            var body = player.GetComponent<Rigidbody2D>();
+            var firstCheckpointX = Constants.CHECKPOINT_INTERVAL - 20f;
+            body.position = new Vector2(firstCheckpointX, 0.4f);
+            player.transform.position = body.position;
+            for (var step = 0; step < 10; step++)
+            {
+                yield return new WaitForFixedUpdate();
+            }
+
+            var checkpoint = fallback.GetComponentsInChildren<CheckpointMarker>()
+                .OrderBy(marker => marker.transform.position.x)
+                .FirstOrDefault(marker => marker.transform.position.x > firstCheckpointX);
+            Assert.That(checkpoint, Is.Not.Null,
+                "The fallback route must stream delivery checkpoints; the authored catalog is empty.");
+
+            var delivered = 0;
+            packages.OnPackageDelivered += () => delivered++;
+            var scoreBefore = score != null ? score.Score : 0;
+
+            // Walk the cat into the trigger by pinning its position each step. Letting it
+            // actually run that stretch made this test flaky: the hazards between here and
+            // the checkpoint killed it, which is a real gameplay fact but not what this
+            // test is for. Hazard survival has its own test above.
+            var markerX = checkpoint.transform.position.x;
+            for (var step = 0; step < 40 && delivered == 0; step++)
+            {
+                var approach = Mathf.Min(markerX, firstCheckpointX + step * 0.5f);
+                body.position = new Vector2(approach, 0.4f);
+                player.transform.position = body.position;
+                yield return new WaitForFixedUpdate();
+            }
+
+            Assert.That(delivered, Is.GreaterThan(0),
+                "Reaching a fallback checkpoint must deliver the carried package.");
+            Assert.That(score != null && score.Score > scoreBefore, Is.True,
+                "A delivery must award score.");
+
+            // Force at least one full route refresh past the checkpoint.
+            for (var step = 0; step < 30; step++)
+            {
+                yield return null;
+            }
 
             yield return SceneManager.UnloadSceneAsync("Game");
         }

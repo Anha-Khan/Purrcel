@@ -5,7 +5,7 @@ using CatCourier.Core;
 
 namespace CatCourier.Generation
 {
-    [CreateAssetMenu(fileName = "ChunkCatalog", menuName = "Cat Courier/Chunk Catalog")]
+    [CreateAssetMenu(fileName = "ChunkCatalog", menuName = "Purrcel/Chunk Catalog")]
     public sealed class ChunkCatalog : ScriptableObject
     {
         [Serializable]
@@ -101,18 +101,6 @@ namespace CatCourier.Generation
                 }
             }
 
-        }
-
-        public bool TryGet(DistrictId district, ChunkType type, out GameObject prefab)
-        {
-            if (TryGetVariants(district, type, out var variants) && variants.Count > 0)
-            {
-                prefab = variants[0];
-                return true;
-            }
-
-            prefab = null;
-            return false;
         }
 
         public bool TryGetVariants(DistrictId district, ChunkType type, out IReadOnlyList<GameObject> variants)

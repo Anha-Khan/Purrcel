@@ -14,6 +14,13 @@ namespace CatCourier.Tests
     {
         private const float MaxDistance = Constants.DIFFICULTY_STEP_DISTANCE * 10f;
 
+        /// <summary>
+        /// The cat's transform rides at y=0.4 and its hitbox is 1.0 tall standing, so its
+        /// head is at 0.9. Sliding uses SLIDE_HITBOX_HEIGHT_ABS and drops it to 0.3.
+        /// </summary>
+        private const float CatHeadStanding = 0.9f;
+        private const float CatHeadSliding = 0.3f;
+
         [Test]
         public void DifficultyProgress_MatchesDifficultyManagerLevels()
         {
@@ -95,6 +102,53 @@ namespace CatCourier.Tests
                 previousSpecial = special;
                 previousBoost = boost;
             }
+        }
+
+        [Test]
+        public void CheckpointClearSpan_FitsInsideTheHazardSpacing()
+        {
+            // SpawnNext forces clear road for +/- CheckpointClearRadius around a checkpoint.
+            // If that span were wider than the gap between two checkpoints, hazards would be
+            // suppressed for the whole run and the route would be empty.
+            Assert.That(FallbackObstacleSpawner.CheckpointClearRadius * 2f,
+                Is.LessThan(Constants.CHECKPOINT_INTERVAL),
+                "A checkpoint's clear span must be narrower than the distance to the next one.");
+            Assert.That(FallbackObstacleSpawner.CheckpointClearRadius,
+                Is.GreaterThan(0f));
+        }
+
+        /// <summary>
+        /// The overhead drone shipped as a box around its painted body, low enough that a
+        /// running cat overlapped it and high enough that the same jump cleared it. It
+        /// behaved exactly like cargo, so the route had one verb instead of two. These
+        /// pin the geometry that makes it duck-only.
+        /// </summary>
+        [Test]
+        public void OverheadHazard_CanBeDuckedUnderButNotStoodInto()
+        {
+            Assert.That(FallbackObstacleSpawner.OverheadHazardBottom,
+                Is.GreaterThan(CatHeadSliding),
+                "A sliding cat must clear the underside, or the hazard is unavoidable.");
+            Assert.That(FallbackObstacleSpawner.OverheadHazardBottom,
+                Is.LessThan(CatHeadStanding),
+                "A running cat must collide with the underside, or ducking is pointless.");
+        }
+
+        [Test]
+        public void OverheadHazard_CannotBeJumpedAtAnyUpgradeLevel()
+        {
+            // Single jump rises v^2/(2g); the double jump adds its own on top. A collider
+            // ending below either apex can simply be jumped, which was the original bug.
+            var single = Constants.JUMP_FORCE * Constants.JUMP_FORCE / (2f * -Constants.GRAVITY);
+            var second = Constants.DOUBLE_JUMP_FORCE * Constants.DOUBLE_JUMP_FORCE /
+                (2f * -Constants.GRAVITY);
+            var catApex = 0.4f + single + second + 0.5f;
+
+            Assert.That(FallbackObstacleSpawner.OverheadHazardTop,
+                Is.GreaterThan(catApex),
+                $"The collider top ({FallbackObstacleSpawner.OverheadHazardTop}) must clear the " +
+                $"cat's double-jump apex ({catApex:0.00}), or the drone is just another jump.");
+            Assert.That(single, Is.GreaterThan(0f), "Jump maths guard: gravity sign flipped.");
         }
     }
 }
