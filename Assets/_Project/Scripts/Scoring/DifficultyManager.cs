@@ -1,5 +1,6 @@
 using System;
 using CatCourier.Core;
+using CatCourier.Generation;
 using UnityEngine;
 
 namespace CatCourier.Scoring
@@ -18,7 +19,7 @@ namespace CatCourier.Scoring
 
         public void SetDistance(float meters)
         {
-            var next = Mathf.Clamp(Mathf.FloorToInt(Mathf.Max(0f, meters) / Constants.DIFFICULTY_STEP_DISTANCE), 0, 10);
+            var next = ChunkManager.DifficultyForDistance(meters);
             if (initialized && next == Level)
             {
                 return;

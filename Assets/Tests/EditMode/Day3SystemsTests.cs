@@ -32,6 +32,66 @@ namespace CatCourier.Tests
         }
 
         [Test]
+        public void ChunkWeights_ActuallyDriveSelectionFrequency()
+        {
+            // The anchor test above only reads the lookup table. This drives the real
+            // selection loop, so a weight that is never consulted cannot pass.
+            var catalog = CreateFullCatalog();
+            var sources = new GameObject("WeightSelectionSources");
+            sources.SetActive(false);
+            var generator = sources.AddComponent<ProceduralGenerator>();
+            try
+            {
+                var unlocked = new[] { DistrictId.OldTown };
+                generator.Initialize(catalog, 4242, DistrictId.OldTown, unlocked, 0);
+
+                generator.SetDifficulty(0);
+                var easy = CountTypes(generator, 4000);
+                generator.SetDifficulty(10);
+                var hard = CountTypes(generator, 4000);
+
+                // SmallGap falls 30 -> 10 and ObstacleDense rises 10 -> 20, so the
+                // generator must actually pick them more and less often.
+                Assert.That(hard[ChunkType.SmallGap], Is.LessThan(easy[ChunkType.SmallGap]),
+                    "A weight that drops from 30 to 10 must reduce how often the type is chosen.");
+                Assert.That(hard[ChunkType.ObstacleDense], Is.GreaterThan(easy[ChunkType.ObstacleDense]),
+                    "A weight that rises from 10 to 20 must increase how often the type is chosen.");
+
+                foreach (var counts in new[] { easy, hard })
+                {
+                    var total = 0;
+                    foreach (var count in counts.Values)
+                    {
+                        total += count;
+                    }
+
+                    Assert.That(total, Is.EqualTo(4000), "Every draw must produce exactly one chunk type.");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(sources);
+                DestroyCatalog(catalog);
+            }
+        }
+
+        private static Dictionary<ChunkType, int> CountTypes(ProceduralGenerator generator, int draws)
+        {
+            var counts = new Dictionary<ChunkType, int>();
+            var method = typeof(ProceduralGenerator).GetMethod("SelectWeightedType",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            for (var index = 0; index < draws; index++)
+            {
+                var type = (ChunkType)method.Invoke(generator, null);
+                counts.TryGetValue(type, out var count);
+                counts[type] = count + 1;
+            }
+
+            return counts;
+        }
+
+        [Test]
         public void Catalog_AllowsMultipleVariantsPerDistrictAndType()
         {
             var catalog = ScriptableObject.CreateInstance<ChunkCatalog>();
@@ -141,6 +201,12 @@ namespace CatCourier.Tests
             }
         }
 
+        /// <summary>
+        /// Seeded, so deterministic, and the band is wide enough that only a real weight
+        /// change can break it. Adding a Random draw anywhere in the selection path
+        /// shifts every subsequent value and will fail here for an unrelated reason; that
+        /// is the intended signal, not a flake to loosen.
+        /// </summary>
         [Test]
         public void PackageSelection_UsesDocumentedDistribution()
         {
@@ -168,6 +234,7 @@ namespace CatCourier.Tests
             Assert.That(RunLoadoutService.GetEligibleDistricts(0f, true, Array.Empty<string>()), Does.Contain(DistrictId.Suburbs));
         }
 
+        /// <summary>Seeded and banded; see the note on the package distribution test.</summary>
         [Test]
         public void Weather_UsesDocumentedDistribution()
         {

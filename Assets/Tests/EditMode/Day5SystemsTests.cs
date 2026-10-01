@@ -9,6 +9,7 @@ using CatCourier.Monetization;
 using CatCourier.Player;
 using CatCourier.Progression;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -239,14 +240,92 @@ namespace CatCourier.Tests
             try
             {
                 var audio = host.AddComponent<AudioManager>();
+
+                // The project ships no clips, so the empty-library path is the real
+                // shipping configuration. It must not throw and must report no music.
                 Assert.DoesNotThrow(() => audio.PlaySfx(SfxId.Jump));
                 Assert.DoesNotThrow(() => audio.PlayMusic(MusicId.Hub));
                 Assert.DoesNotThrow(() => audio.PlayAmbient(SfxId.Death));
+                Assert.That(audio.Library, Is.Null);
+                Assert.That(audio.CurrentMusic, Is.Null,
+                    "A missing library must not claim a track is playing.");
             }
             finally
             {
                 Object.DestroyImmediate(host);
             }
+        }
+
+        [Test]
+        public void AudioManager_PlaysAndResolvesAConfiguredLibrary()
+        {
+            // The old test only asserted DoesNotThrow, so it passed even if AudioManager
+            // did nothing at all. Drive it with a real library and a real clip.
+            var host = new GameObject("AudioManagerLibraryDay5Test");
+            var libraryHost = ScriptableObject.CreateInstance<AudioLibrary>();
+            var clip = AudioClip.Create("day5-test", 4410, 1, 44100, false);
+            try
+            {
+                SetLibraryEntry(libraryHost, "sfx", (int)SfxId.Jump, clip, 0.8f);
+                SetLibraryEntry(libraryHost, "music", (int)MusicId.Hub, clip, 0.5f);
+
+                var audio = host.AddComponent<AudioManager>();
+                audio.Configure(libraryHost);
+                BuildAudioSources(audio);
+
+                Assert.That(audio.Library, Is.SameAs(libraryHost));
+                Assert.That(audio.Library.GetSfx(SfxId.Jump), Is.SameAs(clip),
+                    "The library must resolve a configured clip by id.");
+                Assert.That(audio.Library.GetMusic(MusicId.Hub), Is.SameAs(clip));
+
+                audio.PlaySfx(SfxId.Jump);
+                audio.PlayMusic(MusicId.Hub);
+                Assert.That(audio.CurrentMusic, Is.EqualTo(MusicId.Hub),
+                    "A configured track must actually become the current music.");
+
+                // Muting must silence it without losing the library wiring.
+                audio.SetMuted(true);
+                Assert.That(audio.IsMuted, Is.True);
+                Assert.DoesNotThrow(() => audio.PlaySfx(SfxId.Jump));
+                audio.SetMuted(false);
+                Assert.That(audio.IsMuted, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+                Object.DestroyImmediate(clip);
+                Object.DestroyImmediate(libraryHost);
+            }
+        }
+
+        /// <summary>
+        /// AudioManager builds its AudioSources in Awake, which does not run for an
+        /// AddComponent in an EditMode test, so the music slots are null.
+        /// </summary>
+        private static void BuildAudioSources(AudioManager audio)
+        {
+            var method = typeof(AudioManager).GetMethod("BuildSources",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            method.Invoke(audio, null);
+        }
+
+        private static void SetLibraryEntry(
+            AudioLibrary library, string fieldName, int id, AudioClip clip, float volume)
+        {
+            // SerializedObject rather than raw reflection: it is the pattern the
+            // RevenueCatDay4 suite already uses, and it reaches private serialized
+            // fields without a hand-rolled Array.CreateInstance dance.
+            var serialized = new SerializedObject(library);
+            var array = serialized.FindProperty(fieldName);
+            Assert.That(array, Is.Not.Null, $"AudioLibrary.{fieldName} was not found.");
+            array.arraySize = 1;
+            var element = array.GetArrayElementAtIndex(0);
+            element.FindPropertyRelative("id").intValue = id;
+            element.FindPropertyRelative("clip").objectReferenceValue = clip;
+            element.FindPropertyRelative("volume").floatValue = volume;
+            element.FindPropertyRelative("pitchVariance").floatValue = 0f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         [Test]
@@ -270,23 +349,8 @@ namespace CatCourier.Tests
             }
         }
 
-        [Test]
-        public void ContinueQuota_FreeOnePremiumThree()
-        {
-            var host = new GameObject("ContinueQuotaDay5Test");
-            try
-            {
-                var game = host.AddComponent<GameManager>();
-                game.ResetContinuesForRun(false);
-                Assert.That(game.ContinuesLeft, Is.EqualTo(1));
-                game.ResetContinuesForRun(true);
-                Assert.That(game.ContinuesLeft, Is.EqualTo(3));
-            }
-            finally
-            {
-                Object.DestroyImmediate(host);
-            }
-        }
+        // GameManagerTests.StartRun_ResetsContinueBalanceAndEnforcesFreeCap already covers
+        // the StartRun wiring, so this only pins the cap constants themselves.
 
         [Test]
         public void ContinueRespawn_GrantsTwoSecondsOfInvincibility()

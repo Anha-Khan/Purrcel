@@ -47,7 +47,7 @@ The game runs in Unity `2022.3.62f3`. The Game scene has a playable fallback rou
 | UI presenters (hub, HUD, pause, death) | Complete (IMGUI placeholders) |
 | Persistence with atomic writes and recovery | Complete |
 
-Latest Windows editor verification: **93/93 EditMode tests** and **31/31 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, checks that the Hub has a painted camera view, and proves an abandoned run still banks its coins. An earlier Windows Android development build passed; this art and gameplay update has not been rebuilt for Android.
+Latest Windows editor verification: **148/148 EditMode tests** and **31/31 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, checks that the Hub has a painted camera view, and proves an abandoned run still banks its coins. An earlier Windows Android development build passed; this art and gameplay update has not been rebuilt for Android.
 
 ## What is not finished yet
 
@@ -262,7 +262,7 @@ Writes are atomic: serialize to a temporary file, validate it can be read back, 
 ### Unity Test Runner
 
 1. Open **Window > General > Test Runner**.
-2. Select **EditMode**, run all — 93 tests.
+2. Select **EditMode**, run all — 148 tests.
 3. Select **PlayMode**, run all — 31 tests.
 
 The PlayMode suite proves save-path isolation by snapshotting `Application.persistentDataPath` and failing if it changes. Every PlayMode fixture inherits that harness, including the ones that load the real scenes.
@@ -346,7 +346,7 @@ Assets/_Project/Scripts/Audio/         audio manager, library, event relay
 Assets/_Project/Editor/                idempotent setup and release readiness validation
 Assets/_Project/Config/                chunk catalog, audio library, local RevenueCat config
 Assets/_Project/Scenes/                Boot, Hub, Game
-Assets/Tests/EditMode/                 93 fast tests
+Assets/Tests/EditMode/                 148 fast tests
 Assets/Tests/PlayMode/                 31 scene and lifecycle tests
 Tools/                                 local verification scripts
 HANDOFF.md                             open questions, blockers, and delivery status

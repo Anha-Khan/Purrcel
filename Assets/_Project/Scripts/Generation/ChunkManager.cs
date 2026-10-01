@@ -350,6 +350,17 @@ namespace CatCourier.Generation
             return count;
         }
 
+        /// <summary>
+        /// Difficulty from run distance. Shared with <see cref="DifficultyManager"/>, which
+        /// derives the same level for the score multiplier and drone speed, so the two
+        /// cannot disagree.
+        /// </summary>
+        public static int DifficultyForDistance(float meters)
+        {
+            return Mathf.Clamp(
+                Mathf.FloorToInt(Mathf.Max(0f, meters) / Constants.DIFFICULTY_STEP_DISTANCE), 0, 10);
+        }
+
         private void UpdateDifficulty()
         {
             if (player == null)
@@ -357,8 +368,7 @@ namespace CatCourier.Generation
                 return;
             }
 
-            var distance = Mathf.Max(0f, player.position.x);
-            SetDifficulty(Mathf.FloorToInt(distance / Constants.DIFFICULTY_STEP_DISTANCE));
+            SetDifficulty(DifficultyForDistance(player.position.x));
         }
 
         private void ReturnAllActiveChunks()

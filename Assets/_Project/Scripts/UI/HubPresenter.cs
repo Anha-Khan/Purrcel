@@ -106,7 +106,7 @@ namespace CatCourier.UI
             // The Upgrades/Cats/Leaderboard panels are drawn by sibling presenters that
             // each call BeginContent on the same rect. Warn if one is missing, so a
             // disabled component reads as a bug instead of a silently blank tab.
-            if (HubTabs.Active != HubTab.Run && !HasPresenterForActiveTab())
+            if (HubTabs.Active != HubTab.Run && !HasPresenterForActiveTab(HubTabs.Active))
             {
                 GUILayout.BeginArea(HubLayout.ContentRect);
                 GUILayout.Label($"The {HubTabs.Active} panel is not available in this build.");
@@ -116,9 +116,14 @@ namespace CatCourier.UI
             DrawFooter();
         }
 
-        private static bool HasPresenterForActiveTab()
+        /// <summary>
+        /// Whether the active tab has a presenter that will actually draw into the shared
+        /// content rect. Disabling one of those components used to produce a silently
+        /// blank panel; the OnGUI path reports it instead.
+        /// </summary>
+        public static bool HasPresenterForActiveTab(HubTab tab)
         {
-            switch (HubTabs.Active)
+            switch (tab)
             {
                 case HubTab.Upgrades:
                     return FindObjectOfType<UpgradeListPresenter>() != null;

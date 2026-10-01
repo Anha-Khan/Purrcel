@@ -105,7 +105,12 @@ namespace CatCourier.UI
             OnStateChanged?.Invoke();
         }
 
-        private static bool HasPaidBreedContent()
+        /// <summary>
+        /// Whether a breed pack may be sold. Public because the "unfinished paid content
+        /// is never sold" rule is a submission guarantee worth asserting from a test,
+        /// and the test assembly cannot see internals.
+        /// </summary>
+        public static bool HasPaidBreedContent()
         {
             var breeds = FindObjectOfType<CatBreedManager>();
             if (breeds == null)
@@ -127,7 +132,12 @@ namespace CatCourier.UI
         /// <summary>Assigned by project setup so paid district packs stay hidden while no chunks ship.</summary>
         public static ChunkCatalog CatalogReference { get; set; }
 
-        private static bool HasDistrictContent()
+        /// <summary>
+        /// Whether a district pack may be sold. Public for the same reason as
+        /// <see cref="HasPaidBreedContent"/>: this is the gate that stops an unfinished
+        /// district being sold, and it had no coverage at all.
+        /// </summary>
+        public static bool HasDistrictContent()
         {
             var catalog = CatalogReference ?? FindObjectOfType<ChunkManager>()?.Catalog;
             return catalog != null &&

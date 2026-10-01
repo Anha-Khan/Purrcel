@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using CatCourier.Core;
+using CatCourier.Generation;
 using CatCourier.Monetization;
+using CatCourier.UI;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -197,6 +199,48 @@ namespace CatCourier.Tests
             {
                 PaywallGate.ResetForTests();
             }
+        }
+
+        [Test]
+        public void Paywall_KeepsUnfinishedPaidContentHidden()
+        {
+            // The "unfinished paid content is never sold" rule is the most valuable
+            // guarantee in the monetization layer and it had no coverage at all. With
+            // the shipping empty catalog, no district pack may be offered.
+            var catalog = ScriptableObject.CreateInstance<ChunkCatalog>();
+            var previous = PaywallPresenter.CatalogReference;
+            try
+            {
+                PaywallPresenter.CatalogReference = catalog;
+                Assert.That(PaywallPresenter.HasDistrictContent(), Is.False,
+                    "An empty catalog must not sell a district pack.");
+
+                catalog.SetEntries(new[]
+                {
+                    new ChunkCatalog.Entry
+                    {
+                        district = DistrictId.Harbour,
+                        type = ChunkType.SmallGap,
+                        prefab = null
+                    }
+                });
+
+                Assert.That(PaywallPresenter.HasDistrictContent(), Is.False,
+                    "A null prefab is not authored content, so the pack must stay hidden.");
+            }
+            finally
+            {
+                PaywallPresenter.CatalogReference = previous;
+                UnityEngine.Object.DestroyImmediate(catalog);
+            }
+        }
+
+        [Test]
+        public void Paywall_HidesBreedPacksUntilRealContentExists()
+        {
+            // No CatBreedManager in the scene means no IAP breeds, so no breed offering.
+            Assert.That(PaywallPresenter.HasPaidBreedContent(), Is.False,
+                "With no breed manager there is no sellable breed content.");
         }
 
         private static void SetSaveInstance(SaveSystem value)

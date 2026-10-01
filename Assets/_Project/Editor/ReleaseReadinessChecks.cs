@@ -634,9 +634,13 @@ namespace CatCourier.Editor
             var config = AssetDatabase.LoadAssetAtPath<RevenueCatConfig>(RevenueCatConfigPath);
             if (config == null)
             {
-                report.Add(SecretCheck, ReleaseSeverity.Warn,
-                    $"No local {RevenueCatConfigPath} asset.",
-                    "Expected on a fresh clone. Create it with Cat Courier > Setup > Create Local RevenueCat Config and never commit it.");
+                // A development build with no config falls back to fake purchases, which
+                // looks like a working store in a demo. That is worth a blocker, not a
+                // warning, before an APK goes out.
+                report.Add(SecretCheck, ReleaseSeverity.Blocker,
+                    $"No local {RevenueCatConfigPath} asset, so a development build would run on FAKE purchases.",
+                    "Create it with Cat Courier > Setup > Create Local RevenueCat Config, then " +
+                    "Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo, and paste your Test Store public key. Never commit it.");
             }
             else
             {
