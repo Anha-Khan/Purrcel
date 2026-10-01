@@ -20,19 +20,9 @@ namespace CatCourier.Obstacles
             speedMultiplierOnHit = 1f;
         }
 
-        public void SetTarget(Transform target)
-        {
-            playerTarget = target;
-        }
-
         public void SetPlayerTarget(PlayerController player)
         {
             playerTarget = player != null ? player.transform : null;
-        }
-
-        public void SetRollingSpeed(float value)
-        {
-            rollingSpeed = Mathf.Max(0f, value);
         }
 
         public void Simulate(float deltaTime)
@@ -83,20 +73,23 @@ namespace CatCourier.Obstacles
                 var player = FindPlayer(other);
                 if (player != null)
                 {
-                    player.NotifyObstacle(!isDeadly);
+                    player.NotifyObstacle(!isDeadly, GetComponent<Collider2D>());
                 }
             }
         }
 
         private void ResolveTarget()
         {
-            if (playerTarget == null)
+            if (playerTarget != null)
             {
-                var player = FindObjectOfType<PlayerController>();
-                if (player != null)
-                {
-                    playerTarget = player.transform;
-                }
+                return;
+            }
+
+            // Cached: this ran on every Simulate, scanning the scene each frame.
+            var player = FindObjectOfType<PlayerController>();
+            if (player != null)
+            {
+                playerTarget = player.transform;
             }
         }
     }

@@ -22,8 +22,14 @@ namespace CatCourier.Core
         public event Action OnDataSaved;
 
         /// <summary>
-        /// Test seam. When set before a SaveSystem is created, it replaces Application.persistentDataPath
-        /// so automated tests never read or write the real save file. Leave null in production.
+        /// Test seam. When set before a SaveSystem is created, it replaces
+        /// Application.persistentDataPath so automated tests never read or write the real
+        /// save file. Leave null in production.
+        ///
+        /// ponytail: the suites currently aim <see cref="ConfigurePaths"/> at a temp
+        /// directory instead, so nothing sets this. Kept because Awake is the one place
+        /// that would otherwise hard-code the real path; delete it if a future harness
+        /// ends up using it.
         /// </summary>
         public static string DirectoryOverrideForTests { get; set; }
 

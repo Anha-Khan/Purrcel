@@ -9,8 +9,6 @@ namespace CatCourier.Obstacles
         [SerializeField, Range(0f, 1f)] private float slowdownMultiplier = 0.8f;
 
         private PlayerController affectedPlayer;
-        private float previousSpeedMultiplier;
-        private float previousJumpForceMultiplier;
         private float remainingSlowdownTime;
 
         public float SlowdownDuration => Mathf.Max(0f, slowdownDuration);
@@ -53,18 +51,8 @@ namespace CatCourier.Obstacles
             }
 
             RestoreSlowdown();
-            var stats = player.Stats;
-            if (stats == null)
-            {
-                return;
-            }
-
             affectedPlayer = player;
-            previousSpeedMultiplier = stats.SpeedMultiplier;
-            previousJumpForceMultiplier = stats.JumpForceMultiplier;
-            stats.SetExternalMultipliers(
-                previousSpeedMultiplier * SlowdownMultiplier,
-                previousJumpForceMultiplier);
+            player.ApplyStumbleSlowdown(SlowdownMultiplier);
             remainingSlowdownTime = SlowdownDuration;
         }
 
@@ -72,7 +60,10 @@ namespace CatCourier.Obstacles
         {
             if (affectedPlayer != null)
             {
-                affectedPlayer.Stats?.SetExternalMultipliers(previousSpeedMultiplier, previousJumpForceMultiplier);
+                // Ask the player to recompose instead of writing the captured
+                // multipliers back. Writing them back overwrote the weather x package
+                // product, so any weather change during a stumble silently erased it.
+                affectedPlayer.ClearStumbleSlowdown();
             }
 
             affectedPlayer = null;

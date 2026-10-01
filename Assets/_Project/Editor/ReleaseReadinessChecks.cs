@@ -56,7 +56,7 @@ namespace CatCourier.Editor
                 {
                     report.Add(ScenesCheck, ReleaseSeverity.Blocker,
                         $"Required scene '{name}' is missing.",
-                        $"Expected at {path}. Run Cat Courier > Setup > Create Missing Scenes.");
+                        $"Expected at {path}. Run Purrcel > Setup > Create Missing Scenes.");
                 }
                 else
                 {
@@ -129,7 +129,7 @@ namespace CatCourier.Editor
             {
                 report.Add(CatalogCheck, ReleaseSeverity.Blocker,
                     $"Chunk catalog asset is missing at {ChunkCatalogPath}.",
-                    "Run Cat Courier > Setup > Create Day 3 Systems, then author chunk prefabs.");
+                    "Run Purrcel > Setup > Create Day 3 Systems, then author chunk prefabs.");
                 return coverage;
             }
 
@@ -634,9 +634,13 @@ namespace CatCourier.Editor
             var config = AssetDatabase.LoadAssetAtPath<RevenueCatConfig>(RevenueCatConfigPath);
             if (config == null)
             {
-                report.Add(SecretCheck, ReleaseSeverity.Warn,
-                    $"No local {RevenueCatConfigPath} asset.",
-                    "Expected on a fresh clone. Create it with Cat Courier > Setup > Create Local RevenueCat Config and never commit it.");
+                // A development build with no config falls back to fake purchases, which
+                // looks like a working store in a demo. That is worth a blocker, not a
+                // warning, before an APK goes out.
+                report.Add(SecretCheck, ReleaseSeverity.Blocker,
+                    $"No local {RevenueCatConfigPath} asset, so a development build would run on FAKE purchases.",
+                    "Create it with Purrcel > Setup > Create Local RevenueCat Config, then " +
+                    "Purrcel > Setup > Use Real RevenueCat for Next Gen Demo, and paste your Test Store public key. Never commit it.");
             }
             else
             {
@@ -650,7 +654,7 @@ namespace CatCourier.Editor
                 {
                     report.Add(SecretCheck, ReleaseSeverity.Warn,
                         "RevenueCatConfig uses the fake backend in sandbox mode.",
-                        "Fine for device testing, but purchases are simulated; say so in the README and Devpost.");
+                        "Purchases are simulated. Select the real backend for the Next Gen Android demo.");
                 }
                 else
                 {
@@ -662,13 +666,20 @@ namespace CatCourier.Editor
                 {
                     report.Add(SecretCheck, ReleaseSeverity.Warn,
                         "RevenueCatConfig has no public keys entered yet.",
-                        "Enter sandbox keys locally. Key values are never read into the report.");
+                        "Enter a Test Store or platform sandbox key locally. Key values are never read into the report.");
                 }
                 else
                 {
                     report.Add(SecretCheck, ReleaseSeverity.Pass,
-                        $"RevenueCatConfig has {keys} of 4 public key fields filled in (values never read or logged).");
+                        $"RevenueCatConfig has {keys} of 5 public key fields filled in (values never read or logged).");
                 }
+
+                if (config.IsAndroidDemoReady)
+                    report.Add(SecretCheck, ReleaseSeverity.Pass, "Android Next Gen demo can use the real RevenueCat SDK.");
+                else
+                    report.Add(SecretCheck, ReleaseSeverity.Warn,
+                        "Android Next Gen demo is not configured for a real RevenueCat test purchase.",
+                        "Use Purrcel > Setup > Use Real RevenueCat for Next Gen Demo and enter a Test Store public key locally.");
             }
 
             if (File.Exists(Path.Combine(root, "LICENSE")))
@@ -722,7 +733,8 @@ namespace CatCourier.Editor
 
         private static readonly (string Label, string[] Keywords)[] RequiredReadmeSections =
         {
-            ("product description", new[] { "endless runner", "cat courier is" }),
+            // Keyword must track the README's opening line, which names the product Purrcel.
+            ("product description", new[] { "endless runner", "purrcel is" }),
             ("landscape side-view design", new[] { "landscape" }),
             ("screenshots or gifs", new[] { "screenshot", "screen shot", ".gif", "![", "demo video" }),
             ("gameplay loop", new[] { "gameplay", "core loop", "auto-run" }),
@@ -908,7 +920,7 @@ namespace CatCourier.Editor
             var filled = 0;
             foreach (var field in new[]
                      {
-                         "developmentApplePublicKey", "developmentGooglePublicKey",
+                         "developmentApplePublicKey", "developmentGooglePublicKey", "developmentTestStorePublicKey",
                          "productionApplePublicKey", "productionGooglePublicKey"
                      })
             {

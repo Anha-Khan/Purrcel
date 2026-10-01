@@ -20,7 +20,7 @@ namespace CatCourier.Editor
     ///   ReleaseReadinessValidator.Validate()            -> ReleaseReadinessReport (callable, headless-safe)
     ///   ReleaseReadinessValidator.ValidateToConsole()   -> logs the plain-text report
     ///   ReleaseReadinessValidator.ThrowIfBlocked(report)-> explicit opt-in submission gate
-    /// Menu: Cat Courier > Validate > ...
+    /// Menu: Purrcel > Validate > ...
     /// </summary>
     public static partial class ReleaseReadinessValidator
     {
@@ -30,23 +30,23 @@ namespace CatCourier.Editor
         public const string AnimatorControllerPath = "Assets/_Project/Animations/CatPlaceholder.controller";
         public const string InputActionsPath = "Assets/_Project/Input/CatCourierControls.inputactions";
 
-        /// <summary>Cat Courier unlock distance thresholds that RunLoadoutService applies per district.</summary>
+        /// <summary>Purrcel unlock distance thresholds that RunLoadoutService applies per district.</summary>
         public const float HarbourReachDistance = 600f;
         public const float SuburbsReachDistance = 1200f;
 
-        [MenuItem("Cat Courier/Validate/Release Readiness", priority = 20)]
+        [MenuItem("Purrcel/Validate/Release Readiness", priority = 20)]
         private static void MenuValidate()
         {
             ValidateToConsole(true);
         }
 
-        [MenuItem("Cat Courier/Validate/Log Release Readiness (no dialog)", priority = 21)]
+        [MenuItem("Purrcel/Validate/Log Release Readiness (no dialog)", priority = 21)]
         private static void MenuValidateToConsole()
         {
             ValidateToConsole(false);
         }
 
-        [MenuItem("Cat Courier/Validate/Release Gate (throws on blockers)", priority = 22)]
+        [MenuItem("Purrcel/Validate/Release Gate (throws on blockers)", priority = 22)]
         private static void MenuReleaseGate()
         {
             var report = Validate();
@@ -142,7 +142,7 @@ namespace CatCourier.Editor
             if (showDialog && !Application.isBatchMode)
             {
                 EditorUtility.DisplayDialog(
-                    "Cat Courier release readiness",
+                    "Purrcel release readiness",
                     $"Result: {report.Overall}\n\n" +
                     $"PASS: {report.PassCount}\nWARN: {report.WarnCount}\nBLOCKER: {report.BlockerCount}\n\n" +
                     "Full report is in the Console. BLOCKER entries are missing or unfinished content, " +

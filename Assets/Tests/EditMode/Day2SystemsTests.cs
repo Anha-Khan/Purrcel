@@ -1,6 +1,7 @@
 using System.Reflection;
 using CatCourier.Coins;
 using CatCourier.Core;
+using CatCourier.Generation;
 using CatCourier.Player;
 using CatCourier.Scoring;
 using NUnit.Framework;
@@ -10,6 +11,22 @@ namespace CatCourier.Tests
 {
     public sealed class Day2SystemsTests
     {
+        // ponytail: timeScale and the GameManager singleton are global. Without this
+        // the fixture leaks both, and the suite only passed by accident of test order.
+        [SetUp]
+        public void ResetGlobalState()
+        {
+            Time.timeScale = 1f;
+            ClearSingleton<GameManager>();
+        }
+
+        [TearDown]
+        public void RestoreGlobalState()
+        {
+            Time.timeScale = 1f;
+            ClearSingleton<GameManager>();
+        }
+
         [Test]
         public void PlayerStats_UsesTimeFormulaAndCapsSpeed()
         {
@@ -28,12 +45,28 @@ namespace CatCourier.Tests
         [Test]
         public void PlayerStats_CatSpeedBonusChangesBaseTermOnly()
         {
-            var stats = new PlayerStats();
-            stats.SetCatBonuses(1f, 0f);
+            // With a 1x multiplier the two readings coincide: (6+1) and (6+1) are the
+            // same. They only diverge once an upgrade multiplier scales the base term,
+            // which is the case worth pinning.
+            const float bonus = 1f;
+            const float multiplier = 1.5f;
 
-            stats.SetRunTime(10f);
+            var withBonus = new PlayerStats();
+            withBonus.SetCatBonuses(bonus, 0f);
+            withBonus.SetExternalMultipliers(multiplier, 1f);
+            withBonus.SetRunTime(10f);
 
-            Assert.That(stats.CurrentRunSpeed, Is.EqualTo(7.5f).Within(0.001f));
+            // (6 + 1) * 1.5 + 0.5 = 11. Bonus added after scaling would give 6*1.5 + 1 + 0.5 = 10.5.
+            Assert.That(withBonus.CurrentRunSpeed, Is.EqualTo(11f).Within(0.001f),
+                "The cat bonus must raise the base term before the multiplier is applied.");
+
+            var withoutBonus = new PlayerStats();
+            withoutBonus.SetExternalMultipliers(multiplier, 1f);
+            withoutBonus.SetRunTime(10f);
+            Assert.That(withoutBonus.CurrentRunSpeed, Is.EqualTo(9.5f).Within(0.001f));
+            Assert.That(withBonus.CurrentRunSpeed - withoutBonus.CurrentRunSpeed,
+                Is.EqualTo(bonus * multiplier).Within(0.001f),
+                "A base-term bonus must scale with the upgrade multiplier.");
         }
 
         [Test]
@@ -451,6 +484,62 @@ namespace CatCourier.Tests
         }
 
         [Test]
+        public void Difficulty_IsDerivedFromOneSharedFormula()
+        {
+            // ChunkManager and DifficultyManager used to compute the level from distance
+            // separately, so the generator's chunk weights and the score multiplier
+            // could disagree at the same moment in a run.
+            var host = new GameObject("SharedDifficultyDay2Test");
+            try
+            {
+                var difficulty = host.AddComponent<DifficultyManager>();
+                for (var meters = -50f; meters <= 2000f; meters += 37f)
+                {
+                    difficulty.SetDistance(meters);
+                    Assert.That(difficulty.Level,
+                        Is.EqualTo(ChunkManager.DifficultyForDistance(meters)),
+                        $"The two difficulty sources disagreed at {meters:0} m.");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void FollowCamera_ShakesOnLandAndDeathAndReturnsToBase()
+        {
+            var cameraHost = new GameObject("FollowCameraDay2Test");
+            var playerHost = CreatePlayer(out var player);
+            try
+            {
+                var camera = cameraHost.AddComponent<FollowCamera>();
+                cameraHost.transform.position = new Vector3(0f, 3f, -10f);
+                camera.Configure(playerHost.transform);
+
+                camera.RequestShake(0.3f, 0.4f);
+                Assert.That(camera.IsShaking, Is.True, "A shake request must start a shake.");
+
+                // Play the shake out. The camera must return to its authored Y, not
+                // settle at a residual offset.
+                for (var step = 0; step < 60; step++)
+                {
+                    camera.SimulateShakeStep(0.02f);
+                }
+
+                Assert.That(camera.IsShaking, Is.False, "The shake must expire on its duration.");
+                Assert.That(cameraHost.transform.position.y, Is.EqualTo(3f).Within(0.001f),
+                    "A finished shake must not leave the camera offset.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(cameraHost);
+                Object.DestroyImmediate(playerHost);
+            }
+        }
+
+        [Test]
         public void Difficulty_ReachesDocumentedLevelsAndAnchors()
         {
             var host = new GameObject("DifficultyManagerDay2Test");
@@ -488,6 +577,12 @@ namespace CatCourier.Tests
             {
                 Object.DestroyImmediate(host);
             }
+        }
+
+        private static void ClearSingleton<T>() where T : class
+        {
+            var property = typeof(T).GetProperty("Instance", BindingFlags.Static | BindingFlags.Public);
+            property?.GetSetMethod(true)?.Invoke(null, new object[] { null });
         }
 
         private static object InvokePrivate(object target, string methodName, params object[] arguments)

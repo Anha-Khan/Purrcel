@@ -1,3 +1,4 @@
+using CatCourier.Art;
 using System;
 using System.Collections.Generic;
 using CatCourier.Core;
@@ -28,12 +29,17 @@ namespace CatCourier.UI
 
         private void OnEnable()
         {
+            revenueCat ??= FindObjectOfType<RevenueCatManager>();
             PaywallGate.OnRequested += Open;
+            if (revenueCat != null)
+                revenueCat.OnStateChanged += HandleRevenueCatStateChanged;
         }
 
         private void OnDisable()
         {
             PaywallGate.OnRequested -= Open;
+            if (revenueCat != null)
+                revenueCat.OnStateChanged -= HandleRevenueCatStateChanged;
         }
 
         public void Open(PaywallSource requestedSource)
@@ -41,7 +47,11 @@ namespace CatCourier.UI
             source = requestedSource;
             isOpen = true;
             packages.Clear();
-            status = revenueCat != null && revenueCat.IsReady ? "Loading" : "Unavailable";
+            status = revenueCat == null ? "Store service unavailable"
+                : revenueCat.IsReady ? "Loading"
+                : revenueCat.State == RevenueCatState.Failed || revenueCat.State == RevenueCatState.Degraded
+                    ? "Store unavailable. Configure RevenueCat keys and products."
+                    : "Connecting to store";
             OnStateChanged?.Invoke();
             LoadPackages();
         }
@@ -56,9 +66,8 @@ namespace CatCourier.UI
 
         private void LoadPackages()
         {
-            if (revenueCat == null)
+            if (revenueCat == null || !revenueCat.IsReady)
             {
-                status = "Unavailable";
                 return;
             }
 
@@ -74,7 +83,34 @@ namespace CatCourier.UI
             }
         }
 
-        private static bool HasPaidBreedContent()
+        private void HandleRevenueCatStateChanged(RevenueCatState state)
+        {
+            if (!isOpen)
+                return;
+
+            if (state == RevenueCatState.Ready)
+            {
+                packages.Clear();
+                status = "Loading";
+                LoadPackages();
+            }
+            else if (state == RevenueCatState.Failed || state == RevenueCatState.Degraded)
+            {
+                status = "Store unavailable. Configure RevenueCat keys and products.";
+            }
+            else
+            {
+                status = "Connecting to store";
+            }
+            OnStateChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// Whether a breed pack may be sold. Public because the "unfinished paid content
+        /// is never sold" rule is a submission guarantee worth asserting from a test,
+        /// and the test assembly cannot see internals.
+        /// </summary>
+        public static bool HasPaidBreedContent()
         {
             var breeds = FindObjectOfType<CatBreedManager>();
             if (breeds == null)
@@ -96,7 +132,12 @@ namespace CatCourier.UI
         /// <summary>Assigned by project setup so paid district packs stay hidden while no chunks ship.</summary>
         public static ChunkCatalog CatalogReference { get; set; }
 
-        private static bool HasDistrictContent()
+        /// <summary>
+        /// Whether a district pack may be sold. Public for the same reason as
+        /// <see cref="HasPaidBreedContent"/>: this is the gate that stops an unfinished
+        /// district being sold, and it had no coverage at all.
+        /// </summary>
+        public static bool HasDistrictContent()
         {
             var catalog = CatalogReference ?? FindObjectOfType<ChunkManager>()?.Catalog;
             return catalog != null &&
@@ -132,53 +173,169 @@ namespace CatCourier.UI
             });
         }
 
+        private const float EntranceSeconds = 0.4f;
+        private float shownAt = -1f;
+
         private void OnGUI()
         {
             if (!isOpen)
             {
+                shownAt = -1f;
                 return;
             }
 
-            var rect = new Rect(40f, 40f, 420f, 520f);
-            GUILayout.BeginArea(rect, GUI.skin.box);
-            GUILayout.Label($"Paywall ({source})");
-            GUILayout.Label($"Status: {status}");
-            if (revenueCat != null && revenueCat.IsFakeBackend)
+            if (shownAt < 0f)
             {
-                GUILayout.Label("[DEVELOPMENT FAKE DATA]");
+                shownAt = Time.unscaledTime;
             }
 
-            foreach (var package in packages)
+            var scale = UiTheme.Scale;
+            var entrance = UiMotion.EaseOutCubic(UiMotion.Progress(shownAt, EntranceSeconds));
+
+            // The old paywall was an unscaled 420x520 box with a translucent skin, so the
+            // hub text showed straight through it. It owns the screen now.
+            UiTheme.Scrim(0.74f * entrance);
+
+            var width = Mathf.Min(520f * scale, Screen.width - 40f * scale);
+            var height = Mathf.Min(Screen.height - 60f * scale, Screen.height - 40f * scale);
+            var target = new Rect(
+                (Screen.width - width) * 0.5f,
+                Screen.height - height - 24f * scale,
+                width, height);
+            var outer = UiTheme.ScaledAboutCentre(target, Mathf.Lerp(0.95f, 1f, entrance));
+            var content = UiTheme.Panel(outer, entrance, HubSkin.Honey);
+
+            var hero = new Rect(content.x, content.y, content.width, 46f * scale);
+            UiTheme.Label(hero, "PURRCEL PRO", UiTheme.Title, HubSkin.Honey);
+
+            var benefits = new Rect(content.x, hero.yMax, content.width, 44f * scale);
+            UiTheme.Label(benefits, "No ads   -   3 continues per run   -   2x coins",
+                UiTheme.Caption, UiTheme.Cream);
+
+            // Explicit rects: the icon strip sits alongside the benefit line, and
+            // GUILayoutUtility here would place it by a second, disagreeing layout pass.
+            var iconSize = 40f * scale;
+            for (var i = 0; i < 4; i++)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label($"{package.PackageId}: {package.PriceString} / {package.PeriodLabel}");
-                if (package.HasFreeTrial)
+                var frame = GeneratedArtCatalog.Frame(GeneratedArtCatalog.Active?.premiumBenefits, i);
+                if (frame == null)
                 {
-                    GUILayout.Label("Free trial");
+                    continue;
                 }
 
-                if (GUILayout.Button("Buy", GUILayout.Width(60f)))
+                var slot = new Rect(content.x + content.width - iconSize * (4 - i) - (3 - i) * 6f * scale,
+                    hero.yMax + 2f * scale, iconSize, iconSize);
+                GeneratedUiSprite.Draw(slot, frame);
+            }
+
+            var y = hero.yMax + 52f * scale;
+
+            UiTheme.Label(new Rect(content.x, y, content.width, 24f * scale),
+                status.ToUpperInvariant(), UiTheme.Caption, StatusTint());
+            y += 28f * scale;
+
+            // The fake-data banner is the single most important line in this dialog: a
+            // judge must never mistake an editor price for a real one.
+            if (revenueCat != null && revenueCat.IsFakeBackend)
+            {
+                var warn = new Rect(content.x, y, content.width, 28f * scale);
+                UiTheme.DrawTexture(warn, UiTheme.Solid(UiTheme.Fade(UiTheme.Danger, 0.22f)));
+                UiTheme.Label(warn, "DEVELOPMENT FAKE DATA - NOT A REAL PRICE",
+                    UiTheme.Caption, UiTheme.Danger);
+                y += 34f * scale;
+            }
+
+            // Pure rect flow, no scroll view. Rows advance y explicitly so they cannot drift out
+            // of agreement with the panel, and a plain offering is two rows tall; the
+            // tallest real offering is four, which fits the card without scrolling.
+            var footerTop = content.yMax - 52f * scale;
+            var listBottom = footerTop - 10f * scale;
+            var rowHeight = 62f * scale;
+
+            if (packages.Count == 0)
+            {
+                UiTheme.Label(new Rect(content.x, y + 8f * scale, content.width, 30f * scale),
+                    NoPackagesCopy(status), UiTheme.Body, UiTheme.Muted);
+            }
+
+            var busy = status == "Purchasing";
+            foreach (var package in packages)
+            {
+                if (y + rowHeight > listBottom)
+                {
+                    break;
+                }
+
+                var row = new Rect(content.x, y, content.width, rowHeight - 8f * scale);
+                UiTheme.DrawTexture(row, UiTheme.Solid(UiTheme.Fade(UiTheme.Cream, 0.10f)));
+
+                UiTheme.Label(new Rect(row.x + 14f * scale, row.y + 8f * scale, row.width * 0.58f, 26f * scale),
+                    PackageTitle(package), UiTheme.Body, UiTheme.Cream);
+                UiTheme.Label(new Rect(row.x + 14f * scale, row.y + 32f * scale, row.width * 0.58f, 22f * scale),
+                    PackageSubtitle(package), UiTheme.Caption,
+                    package.HasFreeTrial ? UiTheme.Gold : UiTheme.Muted);
+
+                var buy = new Rect(row.xMax - 104f * scale, row.y + 10f * scale, 88f * scale, 38f * scale);
+                if (!busy && UiTheme.FaceButton(buy, "BUY", HubSkin.Honey, UiTheme.Ink))
                 {
                     Audio.AudioManager.Instance?.PlaySfx(SfxId.UiTap);
                     Buy(package);
                 }
 
-                GUILayout.EndHorizontal();
+                y += rowHeight;
             }
 
-            if (GUILayout.Button("Restore Purchases"))
+            var closeRect = new Rect(content.x, content.yMax - 52f * scale,
+                content.width * 0.5f - 6f * scale, 44f * scale);
+            var restoreRect = new Rect(content.x + content.width * 0.5f + 6f * scale,
+                content.yMax - 52f * scale, content.width * 0.5f - 6f * scale, 44f * scale);
+
+            if (UiTheme.FaceButton(restoreRect, "RESTORE", UiTheme.Slate, UiTheme.Cream,
+                    status != "Restoring"))
             {
                 Audio.AudioManager.Instance?.PlaySfx(SfxId.UiTap);
                 Restore();
             }
 
-            if (GUILayout.Button("Close"))
+            if (UiTheme.FaceButton(closeRect, "CLOSE", UiTheme.Orange, UiTheme.Ink))
             {
                 Audio.AudioManager.Instance?.PlaySfx(SfxId.UiTap);
                 Close();
             }
+        }
 
-            GUILayout.EndArea();
+        private Color StatusTint()
+        {
+            switch (status)
+            {
+                case "Ready": return UiTheme.Gold;
+                case "Purchased":
+                case "Restored": return UiTheme.Teal;
+                case "Error": return UiTheme.Danger;
+                default: return UiTheme.Muted;
+            }
+        }
+
+        private static string PackageTitle(PaywallPackage package)
+        {
+            var name = package.PackageId.Replace("$rc_", string.Empty).Replace('_', ' ');
+            return name.ToUpperInvariant();
+        }
+
+        private static string PackageSubtitle(PaywallPackage package)
+        {
+            var price = $"{package.PriceString} / {package.PeriodLabel}";
+            return package.HasFreeTrial ? $"{price}   -   free trial" : price;
+        }
+
+        private static string NoPackagesCopy(string currentStatus)
+        {
+            if (currentStatus == "Store unavailable. Configure RevenueCat keys and products.")
+            {
+                return "No store configured. Add a RevenueCat Test Store key, then rebuild.";
+            }
+
+            return "No packages available from this store right now.";
         }
 
         private void Buy(PaywallPackage package)
@@ -221,19 +378,6 @@ namespace CatCourier.UI
             });
         }
 
-        private static string OfferingFor(string packageId)
-        {
-            if (packageId == RevenueCatIds.PackageMonthly || packageId == RevenueCatIds.PackageAnnual)
-            {
-                return RevenueCatIds.OfferingDefault;
-            }
-
-            if (packageId == RevenueCatIds.PackageRare || packageId == RevenueCatIds.PackageLegendary)
-            {
-                return RevenueCatIds.OfferingBreeds;
-            }
-
-            return RevenueCatIds.OfferingDistricts;
-        }
+        private static string OfferingFor(string packageId) => RevenueCatIds.OfferingFor(packageId);
     }
 }

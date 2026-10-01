@@ -47,6 +47,17 @@
                 },
                 {
                     "name": "",
+                    "id": "e29c8437-4d2c-4b03-a5d8-d7094b291dc0",
+                    "path": "<Keyboard>/upArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Jump",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "6f2d2c1c-14a3-456a-bf16-9afc9a929abf",
                     "path": "<Mouse>/leftButton",
                     "interactions": "",

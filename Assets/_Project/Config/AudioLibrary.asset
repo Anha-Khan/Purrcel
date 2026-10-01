@@ -12,5 +12,73 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3aa6cb50c61bff4b84a238e8e8617a0, type: 3}
   m_Name: AudioLibrary
   m_EditorClassIdentifier: 
-  sfx: []
-  music: []
+  sfx:
+  - id: 0
+    clip: {fileID: 8300000, guid: 8239549570b7e1647b16ba518166199e, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 1
+    clip: {fileID: 8300000, guid: 8bc5c64b2739ab54a845b2aa8302c5d6, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 2
+    clip: {fileID: 8300000, guid: 0cee17f0de45ee049aebd7143c9c7d8a, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 3
+    clip: {fileID: 8300000, guid: 52f324fb49f0fa34f91bf20450f05614, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 4
+    clip: {fileID: 8300000, guid: af1566bd7b1e9614abaa0fed13145274, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 5
+    clip: {fileID: 8300000, guid: 0f70690e015395740991890547c78314, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 6
+    clip: {fileID: 8300000, guid: a7b88586de54bd34c830ad209b74bc46, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 7
+    clip: {fileID: 8300000, guid: dd6bee675eb1fd74fbdd8d5a011b2bc8, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 8
+    clip: {fileID: 8300000, guid: f28f1d9d96850004a927bcf0a8abd0dc, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 9
+    clip: {fileID: 8300000, guid: ca0747bdbeb6d6f42aa22771a5e60f10, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 10
+    clip: {fileID: 8300000, guid: d81dc65a261bdc54aace5a5b3c9a6d89, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  - id: 11
+    clip: {fileID: 8300000, guid: 503f85b63ae66b441b1b09b15418127c, type: 3}
+    volume: 0.8
+    pitchVariance: 0.12
+  music:
+  - id: 0
+    clip: {fileID: 8300000, guid: 2087b66d12c0f454e9e44301f831ccb1, type: 3}
+    volume: 0.45
+    pitchVariance: 0
+  - id: 1
+    clip: {fileID: 8300000, guid: 4bae173cafe427743844f7dfb49cc29f, type: 3}
+    volume: 0.45
+    pitchVariance: 0
+  - id: 2
+    clip: {fileID: 8300000, guid: cf176dcc0c9a8654385517cf810848a9, type: 3}
+    volume: 0.45
+    pitchVariance: 0
+  - id: 3
+    clip: {fileID: 8300000, guid: c8d9d493ec159dc41961f5f8696bea5a, type: 3}
+    volume: 0.45
+    pitchVariance: 0
+  - id: 4
+    clip: {fileID: 8300000, guid: 81b17df6cfa466c4cbcf2798a250b097, type: 3}
+    volume: 0.45
+    pitchVariance: 0

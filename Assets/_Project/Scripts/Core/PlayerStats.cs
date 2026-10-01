@@ -23,7 +23,9 @@ namespace CatCourier.Core
         private float runTime;
 
         /// <summary>
-        /// Every field is a value type, so a shallow copy is exact and cannot drift when a stat is added.
+        /// Shallow copy. Correct only while every field is a value type, which the class
+        /// comment states: adding a reference field would silently share it with the
+        /// clone. A reference field needs an explicit deep copy here.
         /// </summary>
         public PlayerStats Clone() => (PlayerStats)MemberwiseClone();
 

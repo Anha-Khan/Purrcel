@@ -122,7 +122,10 @@ namespace CatCourier.Audio
             ApplyMusicVolumes();
         }
 
-        public void PlaySfx(SfxId id)
+        public void PlaySfx(SfxId id) => PlaySfx(id, 1f);
+
+        /// <summary>Plays a one-shot with an extra volume scale, e.g. softer for a light landing.</summary>
+        public void PlaySfx(SfxId id, float volumeScale)
         {
             if (IsMuted || library == null)
             {
@@ -141,7 +144,7 @@ namespace CatCourier.Audio
             }
 
             voice.pitch = ResolvePitch(pitchVariance);
-            voice.PlayOneShot(clip, volume);
+            voice.PlayOneShot(clip, volume * Mathf.Clamp01(volumeScale));
         }
 
         public void PlayMusic(MusicId id)
@@ -168,6 +171,7 @@ namespace CatCourier.Audio
             outgoingTargetVolume = musicFrom != null && musicFrom.isPlaying ? musicTargetVolume : 0f;
             musicTargetVolume = volume;
             musicTo = OtherSlot(musicTo);
+            musicTo.loop = true;
             musicTo.clip = clip;
             musicTo.time = 0f;
             musicTo.volume = 0f;
@@ -175,12 +179,6 @@ namespace CatCourier.Audio
             incomingVolume = 0f;
             outgoingVolume = musicFrom != null && musicFrom.isPlaying ? 1f : 0f;
             MusicState = MusicPlaybackState.FadingIn;
-        }
-
-        public void StopMusic()
-        {
-            CurrentMusic = null;
-            StopMusicSources();
         }
 
         public void PlayAmbient(SfxId id, float volume = 1f)
@@ -199,11 +197,6 @@ namespace CatCourier.Audio
             ambientSource.loop = true;
             ambientSource.volume = Mathf.Clamp01(volume) * AmbientVolume();
             ambientSource.Play();
-        }
-
-        public void StopAmbient()
-        {
-            ambientSource?.Stop();
         }
 
         private void Update()
@@ -331,6 +324,8 @@ namespace CatCourier.Audio
             MusicState = MusicPlaybackState.Stopped;
         }
 
+        // Ambient rides the mute state only. The per-clip volume from the library is
+        // already applied by PlayAmbient, so this is a gate, not a second volume.
         private float AmbientVolume() => IsMuted ? 0f : 1f;
 
         private float ResolvePitch(float pitchVariance)

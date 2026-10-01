@@ -9,9 +9,13 @@ namespace CatCourier.Coins
         public int Bank { get; private set; }
         public int RunCoins { get; private set; }
         public float MagnetRadius { get; private set; }
-        public float FinalMultiplier => Mathf.Max(0f, PremiumMultiplier * UpgradeMultiplier * BreedMultiplier);
+        public float FinalMultiplier => Mathf.Max(0f, PremiumMultiplier * UpgradeMultiplier * BreedMultiplier * DistrictMultiplier);
 
-        public event Action<int> OnBankChanged;
+        /// <summary>Set when the run enters a district whose unlock pack the player owns.</summary>
+        public float DistrictMultiplier { get; private set; } = 1f;
+
+        // The previous OnBankChanged was invoked in three places and subscribed to
+        // nowhere; consumers read Bank directly.
         public event Action<int, int, Vector3> OnCoinsCollected;
 
         private float PremiumMultiplier { get; set; } = 1f;
@@ -34,12 +38,22 @@ namespace CatCourier.Coins
         public void ReloadBank()
         {
             Bank = SaveSystem.Instance?.Data?.totalCoins ?? 0;
-            OnBankChanged?.Invoke(Bank);
         }
 
         public void ResetRun()
         {
             RunCoins = 0;
+            DistrictMultiplier = 1f;
+        }
+
+        /// <summary>
+        /// Applies the district unlock pack's coin bonus for the district the run just
+        /// entered. Passing 1 for a free district or an unowned pack is a no-op, so a
+        /// missing entitlement can never change the payout.
+        /// </summary>
+        public void SetDistrictMultiplier(float multiplier)
+        {
+            DistrictMultiplier = Mathf.Max(0f, multiplier);
         }
 
         public int AwardRunCoins(int amount)
@@ -52,7 +66,6 @@ namespace CatCourier.Coins
             var awarded = Math.Min(amount, int.MaxValue);
             Bank = SaturatingAdd(Bank, awarded);
             RunCoins = SaturatingAdd(RunCoins, awarded);
-            OnBankChanged?.Invoke(Bank);
             return awarded;
         }
 
@@ -68,7 +81,6 @@ namespace CatCourier.Coins
             var awarded = RoundAward(rawValue * FinalMultiplier);
             Bank = SaturatingAdd(Bank, awarded);
             RunCoins = SaturatingAdd(RunCoins, awarded);
-            OnBankChanged?.Invoke(Bank);
             OnCoinsCollected?.Invoke(rawValue, awarded, worldPosition);
             return awarded;
         }

@@ -58,7 +58,7 @@ namespace CatCourier.Core
         public const float SHAKE_DEATH_MAGNITUDE = 0.3f;
         public const float SHAKE_DEATH_DURATION = 0.4f;
 
-        public const string ENTITLEMENT_PREMIUM = "premium";
+        public const string ENTITLEMENT_PREMIUM = "purrcel_pro";
         public const string ENTITLEMENT_RARE_PACK = "rare_breeds_pack";
         public const string ENTITLEMENT_LEGEND_PACK = "legendary_cats_pack";
         public const string ENTITLEMENT_HARBOUR = "harbour_district";

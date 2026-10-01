@@ -51,18 +51,6 @@ namespace CatCourier.Obstacles
             RecalculatePatrolSpeed();
         }
 
-        public void SetPatrolWidth(float value)
-        {
-            patrolWidth = Mathf.Max(0f, value);
-            ResetForChunk();
-        }
-
-        public void SetPatrolSpeed(float value)
-        {
-            patrolSpeed = Mathf.Max(0f, value);
-            RecalculatePatrolSpeed();
-        }
-
         public void SetDifficultyManager(DifficultyManager manager)
         {
             if (difficultyManager == manager)
@@ -136,17 +124,20 @@ namespace CatCourier.Obstacles
                 var player = FindPlayer(other);
                 if (player != null)
                 {
-                    player.NotifyObstacle(!isDeadly);
+                    player.NotifyObstacle(!isDeadly, GetComponent<Collider2D>());
                 }
             }
         }
 
         private void ResolveDifficultyManager()
         {
-            if (difficultyManager == null)
+            if (difficultyManager != null)
             {
-                difficultyManager = FindObjectOfType<DifficultyManager>();
+                return;
             }
+
+            // Cached once. This ran from OnEnable on every patrol obstacle.
+            difficultyManager = FindObjectOfType<DifficultyManager>();
         }
 
         private void SubscribeToDifficulty()

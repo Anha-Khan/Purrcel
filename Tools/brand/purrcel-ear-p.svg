@@ -1,0 +1,16 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- B — "Ear-counter P"
+
+       An ordinary bold P whose bowl holds one upward triangle where the counter would be.
+       The substitution is the entire idea: the hole in the P is a cat's ear, and an ear is
+       an open parcel flap. One change to one letterform, and the mark keeps the P that
+       Purrcel needs for its own initial.
+
+       Triangle centred in the bowl with an even 26px of ink on each side, so the ear does
+       not thin the right stroke into an arrowhead. -->
+  <title>Purrcel</title>
+  <path fill="#000000" fill-rule="evenodd" d="
+    M40 24H160C198 24 220 48 220 82C220 116 198 140 160 140H108V232H40V24Z
+    M136 116L164 60L192 116Z
+  "/>
+</svg>

@@ -75,11 +75,6 @@ namespace CatCourier.Editor
             Add(new ReleaseFinding(check, severity, summary, detail));
         }
 
-        public IReadOnlyList<ReleaseFinding> ForCheck(string check)
-        {
-            return findings.Where(finding => finding.Check == check).ToList();
-        }
-
         public IReadOnlyList<ReleaseFinding> WithSeverity(ReleaseSeverity severity)
         {
             return findings.Where(finding => finding.Severity == severity).ToList();
@@ -88,7 +83,7 @@ namespace CatCourier.Editor
         public string ToPlainText()
         {
             var text = new StringBuilder();
-            text.AppendLine($"Cat Courier release readiness: {Overall}");
+            text.AppendLine($"Purrcel release readiness: {Overall}");
             text.AppendLine($"  pass {PassCount} | warn {WarnCount} | blocker {BlockerCount}");
             text.AppendLine();
 
@@ -113,7 +108,7 @@ namespace CatCourier.Editor
         public string ToMarkdown()
         {
             var text = new StringBuilder();
-            text.AppendLine("# Cat Courier release readiness");
+            text.AppendLine("# Purrcel release readiness");
             text.AppendLine();
             text.AppendLine($"**Result: {Overall}** (pass {PassCount}, warn {WarnCount}, blocker {BlockerCount})");
             text.AppendLine();

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.IO;
 using CatCourier.Core;
@@ -103,6 +104,98 @@ namespace CatCourier.Tests.PlayMode
                 File.Exists(Path.Combine(TempDirectory, "save.json")),
                 Is.True,
                 "Progress must be written, and only into the per-test temp directory.");
+        }
+
+        [UnityTest]
+        public IEnumerator AbandonRunFromPause_BanksTheCoinsTheRunEarned()
+        {
+            var save = CreateTempSaveSystem();
+            var game = CreateGameManager(out _);
+            var player = CreatePlayer("AbandonRunPlayer");
+
+            // Attach the coin/score components before the coordinator resolves its
+            // references, exactly as the real Game scene orders them.
+            var coins = player.gameObject.AddComponent<CatCourier.Coins.CoinManager>();
+            player.gameObject.AddComponent<CatCourier.Scoring.ScoreManager>();
+            coins.Configure(1f, 1f, 1f, 0f);
+
+            var coordinator = CreateRunCoordinator();
+            yield return null;
+
+            game.StartRun();
+            game.PauseRun();
+            Assert.That(game.State, Is.EqualTo(GameState.Paused));
+
+            // Simulate a run that earned coins before the player quit.
+            coins.Collect(12);
+
+            var bankBefore = coins.Bank;
+            Assert.That(bankBefore, Is.EqualTo(12));
+
+            game.AbandonRun();
+
+            Assert.That(save.Data.totalCoins, Is.EqualTo(12),
+                "Abandoning from the pause menu must bank the coins the run earned.");
+            Assert.That(save.Data.totalRunsCompleted, Is.EqualTo(1),
+                "An abandoned run is a completed run and belongs in the history.");
+            Assert.That(save.Data.runHistory.Count, Is.EqualTo(1));
+            Assert.That(game.State, Is.EqualTo(GameState.Hub));
+
+            // Abandoning twice must not double-count.
+            game.AbandonRun();
+            Assert.That(save.Data.totalCoins, Is.EqualTo(12));
+            Assert.That(save.Data.totalRunsCompleted, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator DistrictPackBonus_FollowsTheDistrictAndAPurchaseMidRun()
+        {
+            CreateTempSaveSystem();
+            var entitlementHost = Track(new GameObject("DistrictEntitlementHost"));
+            var entitlement = entitlementHost.AddComponent<EntitlementChecker>();
+            SetStaticInstance(typeof(EntitlementChecker), "Instance", entitlement);
+
+            var game = CreateGameManager(out _);
+            var player = CreatePlayer("DistrictBonusPlayer");
+            var coins = player.gameObject.AddComponent<CatCourier.Coins.CoinManager>();
+            player.gameObject.AddComponent<CatCourier.Scoring.ScoreManager>();
+            coins.Configure(1f, 1f, 1f, 0f);
+            CreateRunCoordinator();
+            yield return null;
+
+            game.StartRun();
+            Assert.That(coins.DistrictMultiplier, Is.EqualTo(1f), "A run starts in a free district.");
+
+            // Buying the pack must not pay out while the run is still in a free
+            // district; the bonus belongs to Harbour only.
+            entitlement.SetEntitlements(new[] { Constants.ENTITLEMENT_HARBOUR });
+            yield return null;
+            Assert.That(coins.FinalMultiplier, Is.EqualTo(1f).Within(0.001f),
+                "Harbour's bonus must not leak into a run that is still in Old Town.");
+
+            var inHarbour = RunLoadoutService.DistrictCoinBonus(DistrictId.Harbour);
+            Assert.That(inHarbour, Is.EqualTo(RunLoadoutService.HarbourPackCoinBonus));
+            coins.SetDistrictMultiplier(inHarbour);
+            Assert.That(coins.FinalMultiplier, Is.EqualTo(RunLoadoutService.HarbourPackCoinBonus).Within(0.001f));
+
+            // Losing the entitlement removes the bonus again.
+            entitlement.SetEntitlements(Array.Empty<string>());
+            yield return null;
+            coins.SetDistrictMultiplier(RunLoadoutService.DistrictCoinBonus(DistrictId.Harbour));
+            Assert.That(coins.FinalMultiplier, Is.EqualTo(1f),
+                "A lapsed pack must not keep paying out.");
+        }
+
+        [UnityTest]
+        public IEnumerator AbandonRun_WithNoCoordinatorStillReturnsToHub()
+        {
+            var game = CreateGameManager(out _);
+            game.StartRun();
+            game.PauseRun();
+
+            game.AbandonRun();
+            Assert.That(game.State, Is.EqualTo(GameState.Hub));
+            yield return null;
         }
 
         [UnityTest]

@@ -12,12 +12,12 @@ namespace CatCourier.Core
             }
 
             var changed = false;
-            if (distance >= 600f && !data.unlockedDistrictIds.Contains(DistrictId.Harbour.ToString()))
+            if (distance >= RunLoadoutService.HarbourReachDistance && !data.unlockedDistrictIds.Contains(DistrictId.Harbour.ToString()))
             {
                 changed |= save.UnlockDistrict(DistrictId.Harbour.ToString());
             }
 
-            if (distance >= 1200f && !data.unlockedDistrictIds.Contains(DistrictId.Suburbs.ToString()))
+            if (distance >= RunLoadoutService.SuburbsReachDistance && !data.unlockedDistrictIds.Contains(DistrictId.Suburbs.ToString()))
             {
                 changed |= save.UnlockDistrict(DistrictId.Suburbs.ToString());
             }

@@ -71,7 +71,7 @@ namespace CatCourier.Packages
                 return false;
             }
         }
-        public PackageType? CurrentPackageType => slots.Count > 0 ? slots[0].Type : null;
+        public PackageType? CurrentPackageType => slots.Count > 0 ? (PackageType?)slots[0].Type : null;
         public PackageState? State
         {
             get
@@ -84,7 +84,7 @@ namespace CatCourier.Packages
                     }
                 }
 
-                return slots.Count > 0 ? slots[0].State : null;
+                return slots.Count > 0 ? (PackageState?)slots[0].State : null;
             }
         }
         public int PackagesDelivered { get; private set; }
@@ -99,12 +99,8 @@ namespace CatCourier.Packages
         public event Action<PackageType> OnPackageAssigned;
         public event Action OnPackageDelivered;
         public event Action OnPackageLost;
-        public event Action<float, float> OnUrgentTimerChanged;
-        public event Action<PackageSlot> OnSlotAssigned;
-        public event Action<CheckpointDeliveryResult> OnCheckpointDelivered;
-        public event Action<int> OnDeliveryCoinsAwarded;
-        public event Action<float, float> OnDeliveryScorePulseRequested;
         public event Action OnRunReset;
+        public event Action<float, float> OnDeliveryScorePulseRequested;
 
         [SerializeField] private int randomSeed;
 
@@ -152,10 +148,7 @@ namespace CatCourier.Packages
                       + Constants.URGENT_TIME_PER_METER * distanceToNextCheckpoint
                       + (premium ? Constants.URGENT_PREMIUM_BONUS_SEC : 0)
                     : 0f;
-                var slot = new PackageSlot(i, type, PackageState.Assigned, urgentTimeLimit);
-                slots.Add(slot);
-                OnPackageAssigned?.Invoke(type);
-                OnSlotAssigned?.Invoke(slot);
+                slots.Add(new PackageSlot(i, type, PackageState.Assigned, urgentTimeLimit));
             }
 
             RecalculateModifiers();
@@ -175,10 +168,8 @@ namespace CatCourier.Packages
                 var urgentLimit = type == PackageType.Urgent
                     ? Constants.URGENT_BASE_TIME + Constants.URGENT_TIME_PER_METER * safeDistance + (premium ? Constants.URGENT_PREMIUM_BONUS_SEC : 0f)
                     : 0f;
-                var slot = new PackageSlot(index, type, PackageState.Assigned, urgentLimit);
-                slots.Add(slot);
+                slots.Add(new PackageSlot(index, type, PackageState.Assigned, urgentLimit));
                 OnPackageAssigned?.Invoke(type);
-                OnSlotAssigned?.Invoke(slot);
             }
 
             RecalculateModifiers();
@@ -208,10 +199,8 @@ namespace CatCourier.Packages
                 var urgentLimit = type == PackageType.Urgent
                     ? Constants.URGENT_BASE_TIME + Constants.URGENT_TIME_PER_METER * safeDistance + (premium ? Constants.URGENT_PREMIUM_BONUS_SEC : 0f)
                     : 0f;
-                var slot = new PackageSlot(slots.Count, type, PackageState.Assigned, urgentLimit);
-                slots.Add(slot);
+                slots.Add(new PackageSlot(slots.Count, type, PackageState.Assigned, urgentLimit));
                 OnPackageAssigned?.Invoke(type);
-                OnSlotAssigned?.Invoke(slot);
                 assigned++;
             }
 
@@ -297,8 +286,6 @@ namespace CatCourier.Packages
                 DeliveryScoreDuration);
             if (deliveredCount > 0)
             {
-                OnCheckpointDelivered?.Invoke(result);
-                OnDeliveryCoinsAwarded?.Invoke(coinsAwarded);
                 OnDeliveryScorePulseRequested?.Invoke(result.ScoreMultiplier, result.ScoreDuration);
             }
 
@@ -401,7 +388,6 @@ namespace CatCourier.Packages
 
             UrgentTimeRemaining = hasUrgent ? remaining : 0f;
             UrgentTimeLimit = hasUrgent ? limit : 0f;
-            OnUrgentTimerChanged?.Invoke(UrgentTimeLimit, UrgentTimeRemaining);
         }
 
         private void Update()

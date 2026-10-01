@@ -7,6 +7,24 @@ namespace CatCourier.Tests
 {
     public sealed class GameManagerTests
     {
+        // ponytail: this fixture also left timeScale at 0 and kept the GameManager
+        // singleton claimed, so it depended on test order. Reset both around each test.
+        [SetUp]
+        public void ResetGlobalState()
+        {
+            Time.timeScale = 1f;
+            ClearSingleton<GameManager>();
+            ClearSingleton<SceneLoader>();
+        }
+
+        [TearDown]
+        public void RestoreGlobalState()
+        {
+            Time.timeScale = 1f;
+            ClearSingleton<GameManager>();
+            ClearSingleton<SceneLoader>();
+        }
+
         [Test]
         public void FailedGameSceneLoad_ReturnsStateToHub()
         {
@@ -183,6 +201,12 @@ namespace CatCourier.Tests
                 Object.DestroyImmediate(loaderHost);
                 Object.DestroyImmediate(host);
             }
+        }
+
+        private static void ClearSingleton<T>() where T : class
+        {
+            var property = typeof(T).GetProperty("Instance", BindingFlags.Static | BindingFlags.Public);
+            property?.GetSetMethod(true)?.Invoke(null, new object[] { null });
         }
 
         private static object InvokeWithoutPersistence(MonoBehaviour component, string methodName)

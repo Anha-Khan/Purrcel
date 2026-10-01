@@ -5,6 +5,13 @@ using CatCourier.Core;
 
 namespace CatCourier.Generation
 {
+    /// <summary>
+    /// Implemented by components that live on pooled chunks and need to know when their
+    /// chunk is taken from or returned to the pool.
+    ///
+    /// This is the ONLY way ChunkManager notifies them. A pooled component that does not
+    /// implement this is never notified and will keep stale state between reuses.
+    /// </summary>
     public interface IChunkPoolResettable
     {
         void OnChunkActivated();
@@ -141,25 +148,6 @@ namespace CatCourier.Generation
             }
         }
 
-        public bool ResetGeneration(int newSeed)
-        {
-            seed = newSeed;
-            if (generator == null || catalog == null)
-            {
-                return false;
-            }
-
-            ReturnAllActiveChunks();
-            generator.Initialize(catalog, seed, initialDistrict, GetEligibleDistricts(), doubleJumpLevel);
-            RefreshUnlockedDistricts();
-            CurrentDistrict = generator.CurrentDistrict;
-            running = true;
-            paused = false;
-            EnsureChunkContainer();
-            MaintainChunks();
-            return true;
-        }
-
         public void SetDifficulty(int difficultyLevel)
         {
             if (generator != null)
@@ -222,10 +210,14 @@ namespace CatCourier.Generation
             while (activeChunks.Count < Constants.ACTIVE_CHUNK_COUNT && attempts < Constants.ACTIVE_CHUNK_COUNT)
             {
                 attempts++;
-                if (!generator.TrySelectNext(out var selection) || !Spawn(selection))
+                if (!generator.TrySelectNext(out var selection))
                 {
                     return;
                 }
+
+                // A failed spawn is logged inside Spawn. Keep filling the window so one
+                // bad prefab costs a chunk rather than the whole route.
+                Spawn(selection);
             }
         }
 
@@ -247,9 +239,15 @@ namespace CatCourier.Generation
             var marker = chunk.GetComponent<ChunkMarker>();
             if (marker == null)
             {
+                // Returning false here aborted MaintainChunks for the whole frame, so
+                // one malformed prefab silently stalled the entire route. Pool the bad
+                // instance and report, but let generation keep filling the window.
                 chunk.SetActive(false);
                 pooledPrefabSources[chunk] = selection.Prefab;
                 pool.Add(chunk);
+                Debug.LogError(
+                    $"Chunk prefab '{selection.Prefab.name}' has no ChunkMarker. It was skipped; " +
+                    "fix the prefab or remove it from the catalog.");
                 return false;
             }
 
@@ -282,6 +280,24 @@ namespace CatCourier.Generation
 
             var cameraLeft = gameplayCamera.transform.position.x - gameplayCamera.orthographicSize * gameplayCamera.aspect;
             var recycleAt = cameraLeft - Constants.CHUNK_WIDTH;
+
+            // This used to recycle exactly one chunk per frame. At max run speed a chunk
+            // passes in about 1.1 s, so it kept up by luck and had no headroom if
+            // ACTIVE_CHUNK_COUNT ever rose. Recycle every chunk that is behind.
+            var recycleCount = 0;
+            while (recycleCount < Constants.ACTIVE_CHUNK_COUNT)
+            {
+                if (!RecycleOne(cameraLeft, recycleAt))
+                {
+                    return;
+                }
+
+                recycleCount++;
+            }
+        }
+
+        private bool RecycleOne(float cameraLeft, float recycleAt)
+        {
             ChunkMarker rearmost = null;
 
             foreach (var marker in activeChunks)
@@ -299,7 +315,7 @@ namespace CatCourier.Generation
 
             if (rearmost == null)
             {
-                return;
+                return false;
             }
 
             activeChunks.Remove(rearmost);
@@ -319,6 +335,7 @@ namespace CatCourier.Generation
             pooledPrefabSources[chunk] = sourcePrefab;
             pool.Add(chunk);
             ActiveAheadCount = CountAhead();
+            return true;
         }
 
         private int CountAhead()
@@ -340,6 +357,17 @@ namespace CatCourier.Generation
             return count;
         }
 
+        /// <summary>
+        /// Difficulty from run distance. Shared with <see cref="DifficultyManager"/>, which
+        /// derives the same level for the score multiplier and drone speed, so the two
+        /// cannot disagree.
+        /// </summary>
+        public static int DifficultyForDistance(float meters)
+        {
+            return Mathf.Clamp(
+                Mathf.FloorToInt(Mathf.Max(0f, meters) / Constants.DIFFICULTY_STEP_DISTANCE), 0, 10);
+        }
+
         private void UpdateDifficulty()
         {
             if (player == null)
@@ -347,8 +375,7 @@ namespace CatCourier.Generation
                 return;
             }
 
-            var distance = Mathf.Max(0f, player.position.x);
-            SetDifficulty(Mathf.FloorToInt(distance / Constants.DIFFICULTY_STEP_DISTANCE));
+            SetDifficulty(DifficultyForDistance(player.position.x));
         }
 
         private void ReturnAllActiveChunks()
@@ -468,6 +495,17 @@ namespace CatCourier.Generation
             OnDistrictChanged?.Invoke(district);
         }
 
+        /// <summary>
+        /// Publishes a checkpoint that did not come from an authored chunk. The fallback
+        /// route has no ChunkMarker, so HandleCheckpointReached cannot serve it, but the
+        /// delivery, scoring and story-beat pipeline downstream must still run.
+        /// </summary>
+        public void RaiseExternalCheckpoint(DistrictId district, int checkpointIndex, StoryBeat storyBeat)
+        {
+            CurrentDistrict = district;
+            OnCheckpointReached?.Invoke(district, checkpointIndex, storyBeat);
+        }
+
         private void HandleCheckpointReached(CheckpointMarker checkpoint)
         {
             if (checkpoint == null)
@@ -507,10 +545,18 @@ namespace CatCourier.Generation
             return null;
         }
 
+        /// <summary>
+        /// Notifies every pooled pickup on a chunk that it is being activated or returned.
+        ///
+        /// Dispatch is by interface only. There used to be a SendMessage fallback for
+        /// components that had not been migrated, but both receivers implement
+        /// IChunkPoolResettable, so the branch could never reach anything — it only looked
+        /// like a working dispatch path. A new pooled component must implement the
+        /// interface, or it will silently never be reset.
+        /// </summary>
         private void SetChunkState(GameObject chunk, bool active)
         {
             var behaviours = chunk.GetComponentsInChildren<MonoBehaviour>(true);
-            var resetByInterface = false;
             foreach (var behaviour in behaviours)
             {
                 if (!(behaviour is IChunkPoolResettable resettable))
@@ -518,7 +564,6 @@ namespace CatCourier.Generation
                     continue;
                 }
 
-                resetByInterface = true;
                 if (active)
                 {
                     resettable.OnChunkActivated();
@@ -527,11 +572,6 @@ namespace CatCourier.Generation
                 {
                     resettable.OnChunkDeactivated();
                 }
-            }
-
-            if (!resetByInterface)
-            {
-                chunk.SendMessage(active ? "OnChunkActivated" : "OnChunkDeactivated", SendMessageOptions.DontRequireReceiver);
             }
         }
 

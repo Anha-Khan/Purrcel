@@ -23,6 +23,7 @@ namespace CatCourier.Core
 
         private RunLoadout loadout;
         private bool started;
+        private bool entitlementSubscribed;
 
         public DistrictId CurrentDistrict => chunkManager?.CurrentDistrict ?? DistrictId.OldTown;
         public RunLoadout Loadout => loadout;
@@ -69,6 +70,31 @@ namespace CatCourier.Core
 
             ConfigureChunkManager();
             UpdateDistrictUnlocks();
+            // After ConfigureRunStats, which resets the per-run coin state.
+            ApplyDistrictCoinBonus();
+            SubscribeToEntitlements();
+        }
+
+        /// <summary>
+        /// A district pack bought mid-run, e.g. from the paywall, must take effect
+        /// without waiting for the next run.
+        /// </summary>
+        private void SubscribeToEntitlements()
+        {
+            if (entitlementSubscribed || Monetization.EntitlementChecker.Instance == null)
+            {
+                return;
+            }
+
+            Monetization.EntitlementChecker.Instance.OnEntitlementsChanged -= HandleEntitlementsChanged;
+            Monetization.EntitlementChecker.Instance.OnEntitlementsChanged += HandleEntitlementsChanged;
+            entitlementSubscribed = true;
+        }
+
+        private void HandleEntitlementsChanged()
+        {
+            loadout = RunLoadoutService.Build();
+            ApplyDistrictCoinBonus();
         }
 
         private void Update()
@@ -154,6 +180,9 @@ namespace CatCourier.Core
 
         private void HandleDistrictChanged(DistrictId district)
         {
+            // The district unlock packs grant a coin bonus in their own district, so the
+            // multiplier has to follow the district as the run moves.
+            ApplyDistrictCoinBonus();
         }
 
         private void UpdateDistrictUnlocks()
@@ -163,6 +192,11 @@ namespace CatCourier.Core
             {
                 chunkManager.SetUnlockedDistricts(DistrictUnlockService.GetEligible(distance, loadout?.IsPremium == true));
             }
+        }
+
+        private void ApplyDistrictCoinBonus()
+        {
+            coins?.SetDistrictMultiplier(RunLoadoutService.DistrictCoinBonus(CurrentDistrict));
         }
 
         private RunResult BuildResult(long scoreValue, int coinsCollected)
@@ -181,6 +215,15 @@ namespace CatCourier.Core
             return camera != null ? camera.ViewportToWorldPoint(Vector3.zero).y : -16f;
         }
 
+        /// <summary>
+        /// Builds the result for a run the player quit from the pause menu, so
+        /// <see cref="GameManager.AbandonRun"/> can bank it like a natural death.
+        /// </summary>
+        public RunResult BuildAbandonResult()
+        {
+            return BuildResult(score?.Score ?? 0L, coins?.RunCoins ?? 0);
+        }
+
         public void RespawnFromContinue()
         {
             player?.RespawnFromContinue();
@@ -191,6 +234,12 @@ namespace CatCourier.Core
             if (Active == this)
             {
                 Active = null;
+            }
+
+            if (entitlementSubscribed && Monetization.EntitlementChecker.Instance != null)
+            {
+                Monetization.EntitlementChecker.Instance.OnEntitlementsChanged -= HandleEntitlementsChanged;
+                entitlementSubscribed = false;
             }
 
             if (chunkManager != null)

@@ -13,9 +13,12 @@ namespace CatCourier.Scoring
         public int PackagesDelivered { get; private set; }
         public float DeliveryScoreMultiplier { get; private set; } = 1f;
 
+        /// <summary>
+        /// Fires on every score recalculation. The HUD polls Score each frame instead,
+        /// so the previous OnDistanceChanged and OnComboChanged were invoked but never
+        /// subscribed to and have been removed.
+        /// </summary>
         public event Action<long> OnScoreChanged;
-        public event Action<float> OnDistanceChanged;
-        public event Action<int, float> OnComboChanged;
         public event Action<int> OnComboMilestone;
 
         private DifficultyManager difficulty;
@@ -53,7 +56,6 @@ namespace CatCourier.Scoring
             DistanceMeters = Mathf.Max(0f, meters);
             difficulty?.SetDistance(DistanceMeters);
             Recalculate();
-            OnDistanceChanged?.Invoke(DistanceMeters);
         }
 
         public void AddPackage()
@@ -117,7 +119,6 @@ namespace CatCourier.Scoring
             }
 
             Recalculate();
-            OnComboChanged?.Invoke(ComboCount, ComboMultiplier);
         }
 
         public void BreakCombo()
@@ -134,7 +135,6 @@ namespace CatCourier.Scoring
             lastCoinX = 0f;
             hasCoinPosition = false;
             Recalculate();
-            OnComboChanged?.Invoke(0, 1f);
         }
 
         public void RegisterObstacleContact() => BreakCombo();

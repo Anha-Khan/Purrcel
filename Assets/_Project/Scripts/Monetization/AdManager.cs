@@ -24,7 +24,7 @@ namespace CatCourier.Monetization
     {
         public static AdManager Instance { get; private set; }
 
-        [Tooltip("RevenueCat Ads has no Unity ad-serving SDK (docs/revenuecat-spike.md). The fake backend keeps ad flows usable until a real one exists.")]
+        [Tooltip("Development only: simulate ad completions for local testing. Release builds never grant fake ad rewards.")]
         [SerializeField] private bool useFakeBackend = true;
 
         [Tooltip("Whether premium accounts may see rewarded ads. Unapproved business rule; default keeps 'premium sees no ads' true.")]
@@ -48,6 +48,7 @@ namespace CatCourier.Monetization
         private GameManager gameManager;
         private Action releaseAction;
         private float busyDeadline;
+        private GameState lastGameState = GameState.Hub;
 
         private void Awake()
         {
@@ -59,10 +60,10 @@ namespace CatCourier.Monetization
 
             Instance = this;
             PersistIfRoot();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (useFakeBackend)
-            {
                 backend = new FakeAdBackend();
-            }
+#endif
         }
 
         private void Update()
@@ -208,9 +209,23 @@ namespace CatCourier.Monetization
                 return;
             }
 
-            InterstitialShownThisRun = true;
+            if (!HasBackend)
+            {
+                // A release build ships no ad backend. Showing the interstitial-shaped
+                // flow anyway cost the player a pointless wait before the hub.
+                NotEligible(completion, "No ad backend is configured in this build.");
+                return;
+            }
+
+            // Claim the per-run slot only once the backend has actually accepted the
+            // request. Setting it up front burned the run's one ad on a failed load.
             ShowInterstitial(Constants.AD_PLACEMENT_DEATH, () =>
             {
+                if (State != AdFlowState.Failed)
+                {
+                    InterstitialShownThisRun = true;
+                }
+
                 if (!completion.TryClaim(out var closed))
                 {
                     return;
@@ -353,13 +368,22 @@ namespace CatCourier.Monetization
                 return;
             }
 
+            // Start from the manager's current state so a manager that was already
+            // Running when this subscribed does not look like a Hub -> Running edge.
+            lastGameState = gameManager.State;
             gameManager.OnStateChanged -= HandleGameStateChanged;
             gameManager.OnStateChanged += HandleGameStateChanged;
         }
 
         private void HandleGameStateChanged(GameState state)
         {
-            if (state == GameState.Running)
+            var previous = lastGameState;
+            lastGameState = state;
+
+            // Only a fresh run from the Hub resets the per-run caps. UseContinue also
+            // moves Dead -> Running, and resetting there handed the player a second
+            // interstitial and a second rewarded continue inside the same run.
+            if (state == GameState.Running && previous == GameState.Hub)
             {
                 ResetForNewRun();
             }

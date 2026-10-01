@@ -10,9 +10,13 @@ namespace CatCourier.Obstacles
     {
         [SerializeField] private PatrolObstacle owner;
 
+        // Resolved once. This used to call FindObjectOfType on every trigger enter.
+        private WeatherManager weather;
+
         private void Awake()
         {
             owner ??= GetComponentInParent<PatrolObstacle>();
+            weather = FindObjectOfType<WeatherManager>();
         }
 
         private void OnTriggerEnter2D(Collider2D other)
@@ -22,7 +26,6 @@ namespace CatCourier.Obstacles
                 return;
             }
 
-            var weather = FindObjectOfType<WeatherManager>();
             if (weather != null && weather.Current == WeatherType.Night)
             {
                 owner.SetNightConeActive(true);

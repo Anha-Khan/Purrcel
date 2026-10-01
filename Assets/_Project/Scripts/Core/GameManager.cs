@@ -67,17 +67,6 @@ namespace CatCourier.Core
 
         private void Update()
         {
-            if (IsStartPending)
-            {
-                var revenueCat = Monetization.RevenueCatManager.Instance;
-                if (revenueCat == null || revenueCat.IsReady)
-                {
-                    IsStartPending = false;
-                    StartRun();
-                    return;
-                }
-            }
-
             if (!continuePending)
             {
                 return;
@@ -104,13 +93,9 @@ namespace CatCourier.Core
                 return;
             }
 
-            var revenueCat = Monetization.RevenueCatManager.Instance;
-            if (revenueCat != null && !revenueCat.IsReady)
-            {
-                IsStartPending = true;
-                return;
-            }
-
+            // Store initialization is optional for the core game loop. A slow,
+            // missing, or offline purchase service must never trap the player
+            // on the Hub or prevent a run from starting.
             IsStartPending = false;
 
             Time.timeScale = 1f;
@@ -175,6 +160,11 @@ namespace CatCourier.Core
             continuePending = false;
             hasPendingRunResult = false;
             ContinuesLeft--;
+            // Every other exit from a frozen state restores the time scale explicitly
+            // (ResumeRun, EndRun, OnDestroy). Without it the world stays at timeScale 0
+            // from the death pause: the HUD keeps updating and the run looks alive, but
+            // FixedUpdate never ticks, so a jump sets a velocity nothing ever integrates.
+            Time.timeScale = 1f;
             SetState(GameState.Running);
             RunCoordinator.Active?.RespawnFromContinue();
             return true;
@@ -194,11 +184,50 @@ namespace CatCourier.Core
             }
         }
 
-        public void ReturnToHub()
+        /// <summary>
+        /// Banks a run the player quit from the pause menu. The result is recorded
+        /// exactly as a natural death records it, so abandoning never costs the
+        /// coins, score, or history entry the run already earned.
+        /// </summary>
+        public void AbandonRun()
         {
-            if (State == GameState.Dead && !FinalizePendingRun())
+            // Only a run that is actually in progress can be abandoned. Without this the
+            // pause menu's button was idempotent by accident: the first AbandonRun
+            // finalized the run and returned to the Hub, and a second call re-read the
+            // same RunCoins and banked them again.
+            if (State != GameState.Paused && State != GameState.Running && State != GameState.Dead)
             {
                 return;
+            }
+
+            if (hasPendingRunResult)
+            {
+                return;
+            }
+
+            if (RunCoordinator.Active == null)
+            {
+                ReturnToHub();
+                return;
+            }
+
+            continuePending = false;
+            Time.timeScale = 1f;
+            LastRun = RunCoordinator.Active.BuildAbandonResult();
+            pendingRunResult = LastRun;
+            hasPendingRunResult = true;
+            FinalizePendingRun();
+            ReturnToHub();
+        }
+
+        public void ReturnToHub()
+        {
+            if (State == GameState.Dead && hasPendingRunResult && !FinalizePendingRun())
+            {
+                // Trapping the player on the death screen is worse than losing one
+                // run, so report the failed write and let them leave.
+                Debug.LogError("Could not save the completed run. Returning to the hub without banking it.");
+                hasPendingRunResult = false;
             }
 
             if (SceneLoader.Instance == null)

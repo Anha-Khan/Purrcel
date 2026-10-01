@@ -56,7 +56,7 @@ namespace CatCourier.Monetization
                 return;
             }
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             IsFakeBackend = useFakeBackend;
 #else
             IsFakeBackend = false;
@@ -64,11 +64,7 @@ namespace CatCourier.Monetization
             initializing = true;
             SetState(RevenueCatState.Initializing);
 
-#if UNITY_EDITOR
-            backend = IsFakeBackend ? new FakePurchasesBackend() : new RealPurchasesBackend();
-#else
-            backend = new RealPurchasesBackend();
-#endif
+            backend = CreateBackend();
             if (backend == null)
             {
                 Fail("RevenueCat backend could not be created.");
@@ -78,6 +74,19 @@ namespace CatCourier.Monetization
             backend.EntitlementsChanged += PublishEntitlements;
             var key = config != null ? config.GetPublicKey() : string.Empty;
             backend.Initialize(key, null, HandleInitialized);
+        }
+
+        /// <summary>
+        /// The backend for this build. A release build always gets the real one; the fake
+        /// is unreachable there, so the paywall can never ship simulated prices.
+        /// </summary>
+        private IPurchasesBackend CreateBackend()
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            return IsFakeBackend ? (IPurchasesBackend)new FakePurchasesBackend() : new RealPurchasesBackend();
+#else
+            return new RealPurchasesBackend();
+#endif
         }
 
         public void GetOffering(string offeringId, Action<bool, PaywallOffering> done)
@@ -112,6 +121,8 @@ namespace CatCourier.Monetization
 
             backend.Purchase(offeringId, packageId, outcome =>
             {
+                // A cancelled purchase is a player choice, not a store fault, so it
+                // must not report the SDK as degraded.
                 if (outcome == PurchaseOutcome.Error)
                 {
                     SetState(RevenueCatState.Degraded);
@@ -131,11 +142,9 @@ namespace CatCourier.Monetization
 
             backend.Restore(success =>
             {
-                if (!success)
-                {
-                    SetState(RevenueCatState.Degraded);
-                }
-
+                // These reported Degraded on any failure, so one offline blip left the
+                // SDK looking broken until the app restarted. Degraded is for a real
+                // configuration fault; a failed network call just reports false.
                 done(success);
             });
         }
@@ -148,32 +157,7 @@ namespace CatCourier.Monetization
                 return;
             }
 
-            backend.RefreshCustomerInfo(success =>
-            {
-                if (!success)
-                {
-                    SetState(RevenueCatState.Degraded);
-                }
-
-                done(success);
-            });
-        }
-
-        public void ConfigureSdk(string publicKey, string appUserId, Action<bool> completed)
-        {
-            if (backend == null || initializing)
-            {
-                completed(false);
-                return;
-            }
-
-            initializing = true;
-            backend.Initialize(publicKey, appUserId, initialized =>
-            {
-                initializing = true;
-                HandleInitialized(initialized);
-                completed(initialized);
-            });
+            backend.RefreshCustomerInfo(success => done(success));
         }
 
         private void HandleInitialized(bool initialized)

@@ -35,17 +35,15 @@ namespace CatCourier.Monetization
         }
 
         public bool HasBreedPack(string packId) => activeEntitlements.Contains(packId);
-        public bool HasDistrict(DistrictId district) => activeEntitlements.Contains(DistrictEntitlementId(district));
-
-        public void RefreshAll(Action<bool> completed = null)
+        /// <summary>
+        /// Old Town and Downtown have no entitlement because they are always unlocked,
+        /// so asking about them answers true. Returning false there made callers treat
+        /// free content as locked.
+        /// </summary>
+        public bool HasDistrict(DistrictId district)
         {
-            if (RevenueCatManager.Instance == null)
-            {
-                completed?.Invoke(false);
-                return;
-            }
-
-            RevenueCatManager.Instance.RefreshCustomerInfo(completed ?? (_ => { }));
+            var id = DistrictEntitlementId(district);
+            return string.IsNullOrEmpty(id) || activeEntitlements.Contains(id);
         }
 
         public void SetEntitlements(IEnumerable<string> entitlements)

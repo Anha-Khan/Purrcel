@@ -5,7 +5,7 @@ using CatCourier.Core;
 
 namespace CatCourier.Generation
 {
-    [CreateAssetMenu(fileName = "ChunkCatalog", menuName = "Cat Courier/Chunk Catalog")]
+    [CreateAssetMenu(fileName = "ChunkCatalog", menuName = "Purrcel/Chunk Catalog")]
     public sealed class ChunkCatalog : ScriptableObject
     {
         [Serializable]
@@ -19,6 +19,7 @@ namespace CatCourier.Generation
         [SerializeField] private List<Entry> entries = new();
         private readonly Dictionary<(DistrictId District, ChunkType Type), List<GameObject>> lookup = new();
         private readonly List<string> validationMessages = new();
+        private bool lookupBuilt;
 
         public IReadOnlyList<Entry> Entries => entries;
         public IReadOnlyList<string> ValidationMessages => validationMessages;
@@ -36,6 +37,7 @@ namespace CatCourier.Generation
             lookup.Clear();
             validationMessages.Clear();
             IsValid = true;
+            lookupBuilt = true;
 
             var seenPrefabs = new HashSet<(DistrictId District, ChunkType Type, GameObject Prefab)>();
             var duplicatePrefabs = new HashSet<(DistrictId District, ChunkType Type, GameObject Prefab)>();
@@ -99,18 +101,6 @@ namespace CatCourier.Generation
                 }
             }
 
-        }
-
-        public bool TryGet(DistrictId district, ChunkType type, out GameObject prefab)
-        {
-            if (TryGetVariants(district, type, out var variants) && variants.Count > 0)
-            {
-                prefab = variants[0];
-                return true;
-            }
-
-            prefab = null;
-            return false;
         }
 
         public bool TryGetVariants(DistrictId district, ChunkType type, out IReadOnlyList<GameObject> variants)
@@ -190,12 +180,20 @@ namespace CatCourier.Generation
             Debug.LogWarning(message, this);
         }
 
+        /// <summary>True once BuildLookup has run, so an empty catalog is not re-validated.</summary>
+        public bool LookupBuilt => lookupBuilt;
+
         private void EnsureLookup()
         {
-            if (lookup.Count == 0)
+            // The old check was lookup.Count == 0, which is also true for a legitimately
+            // empty catalog, so every HasVariants call re-ran the full validation and
+            // re-logged every warning. Track the attempt instead.
+            if (lookupBuilt)
             {
-                BuildLookup();
+                return;
             }
+
+            BuildLookup();
         }
 
         private void OnValidate()

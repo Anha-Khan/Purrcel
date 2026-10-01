@@ -24,7 +24,31 @@ namespace CatCourier.Editor
         private const string ChunkCatalogPath = "Assets/_Project/Config/ChunkCatalog.asset";
         private const string AudioLibraryPath = "Assets/_Project/Config/AudioLibrary.asset";
 
-        [MenuItem("Cat Courier/Setup/Create Missing Scenes", priority = 1)]
+        [InitializeOnLoadMethod]
+        private static void ConfigureEditorPlayModeStartScene()
+        {
+            // Unity's PlayMode test runner needs its own empty scene. Forcing
+            // Boot here loads Hub during tests and stalls the command line run.
+            if (Application.isBatchMode ||
+                System.Array.Exists(System.Environment.GetCommandLineArgs(),
+                    argument => argument == "-runTests"))
+            {
+                EditorSceneManager.playModeStartScene = null;
+                return;
+            }
+
+            // Build Settings only choose the first scene for a player build.
+            // In the Editor, Play normally starts from the currently open scene,
+            // which skips Boot when someone is reviewing Game directly.
+            EditorApplication.delayCall += () =>
+            {
+                var boot = AssetDatabase.LoadAssetAtPath<SceneAsset>($"{ScenesPath}/{SceneNames.Boot}.unity");
+                if (boot != null)
+                    EditorSceneManager.playModeStartScene = boot;
+            };
+        }
+
+        [MenuItem("Purrcel/Setup/Create Missing Scenes", priority = 1)]
         public static void EnsureScenes()
         {
             Directory.CreateDirectory(ScenesPath);
@@ -40,7 +64,7 @@ namespace CatCourier.Editor
             };
         }
 
-        [MenuItem("Cat Courier/Setup/Apply All", priority = -1)]
+        [MenuItem("Purrcel/Setup/Apply All", priority = -1)]
         public static void ApplyAll()
         {
             ApplyPlayerSettings();
@@ -53,14 +77,17 @@ namespace CatCourier.Editor
             EnsureDay6ContentReferences();
             RemoveMissingScripts();
             VerifyDay2Setup();
+            GeneratedArtSetup.Install();
+            EditorTools.CatCourierAudioSetup.ApplyAudio();
+            PurrcelBrandSetup.ApplyBrandIcons();
         }
 
-        [MenuItem("Cat Courier/Setup/Apply Player Settings", priority = 0)]
+        [MenuItem("Purrcel/Setup/Apply Player Settings", priority = 0)]
         public static void ApplyPlayerSettings()
         {
-            PlayerSettings.companyName = "Cat Courier";
+            PlayerSettings.companyName = "Purrcel";
             EditorSettings.serializationMode = SerializationMode.ForceText;
-            PlayerSettings.productName = "Cat Courier";
+            PlayerSettings.productName = "Purrcel";
             PlayerSettings.bundleVersion = "0.1.0";
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.catcourier.game");
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, "com.catcourier.game");
@@ -77,8 +104,12 @@ namespace CatCourier.Editor
             PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Android, ApiCompatibilityLevel.NET_Standard);
             PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.iOS, ApiCompatibilityLevel.NET_Standard);
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel24;
-            PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel33;
-            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARMv7 | AndroidArchitecture.ARM64;
+            PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel34;
+            // ARM64 only. Every native library is compiled once per ABI under IL2CPP, so
+            // dropping 32-bit roughly halves the Android build. No 32-bit-only Android
+            // device is in real use, so nothing testable is lost.
+            // Revert to ARMv7 | ARM64 if you ever need to support one.
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             PlayerSettings.iOS.targetOSVersionString = "14.0";
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Standalone, "com.catcourier.game");
             AddScriptingDefine(BuildTargetGroup.Android, "CAT_COURIER_REVENUECAT");
@@ -100,7 +131,7 @@ namespace CatCourier.Editor
             PlayerSettings.SetScriptingDefineSymbolsForGroup(group, string.Join(";", defines));
         }
 
-        [MenuItem("Cat Courier/Setup/Apply URP Asset", priority = 2)]
+        [MenuItem("Purrcel/Setup/Apply URP Asset", priority = 2)]
         public static void ApplyRenderPipeline()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(RenderPipelinePath)!);
@@ -123,7 +154,7 @@ namespace CatCourier.Editor
             AssetDatabase.SaveAssets();
         }
 
-        [MenuItem("Cat Courier/Setup/Create Day 2 Test Scene", priority = 4)]
+        [MenuItem("Purrcel/Setup/Create Day 2 Test Scene", priority = 4)]
         public static void EnsureDay2TestScene()
         {
             var path = $"{ScenesPath}/{SceneNames.Game}.unity";
@@ -314,7 +345,7 @@ namespace CatCourier.Editor
             pickup.Configure(parent.GetComponentInChildren<Coins.CoinManager>(), value, parent.GetComponentInChildren<Player.PlayerController>());
         }
 
-        [MenuItem("Cat Courier/Setup/Create Hub Start Button", priority = 5)]
+        [MenuItem("Purrcel/Setup/Create Hub Start Button", priority = 5)]
         public static void EnsureHubPlayButton()
         {
             var path = $"{ScenesPath}/{SceneNames.Hub}.unity";
@@ -445,7 +476,7 @@ namespace CatCourier.Editor
             controller.AddParameter(name, type);
         }
 
-        [MenuItem("Cat Courier/Setup/Create Day 3 Systems", priority = 7)]
+        [MenuItem("Purrcel/Setup/Create Day 3 Systems", priority = 7)]
         public static void EnsureDay3Systems()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(ChunkCatalogPath)!);
@@ -561,7 +592,7 @@ namespace CatCourier.Editor
             }
         }
 
-        [MenuItem("Cat Courier/Setup/Verify Day 2", priority = 6)]
+        [MenuItem("Purrcel/Setup/Verify Day 2", priority = 6)]
         public static void VerifyDay2Setup()
         {
             var gameScene = EditorSceneManager.OpenScene($"{ScenesPath}/{SceneNames.Game}.unity", OpenSceneMode.Single);
@@ -635,7 +666,7 @@ namespace CatCourier.Editor
         /// Wires the authored content assets the runtime expects. Creates an empty AudioLibrary so the
         /// field is always assignable, and assigns the chunk catalog so paid-content gating can see it.
         /// </summary>
-        [MenuItem("Cat Courier/Setup/Wire Day 6 Content References", priority = 8)]
+        [MenuItem("Purrcel/Setup/Wire Day 6 Content References", priority = 8)]
         public static void EnsureDay6ContentReferences()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(AudioLibraryPath)!);
@@ -678,7 +709,7 @@ namespace CatCourier.Editor
             }
         }
 
-        [MenuItem("Cat Courier/Setup/Create Local RevenueCat Config", priority = 3)]
+        [MenuItem("Purrcel/Setup/Create Local RevenueCat Config", priority = 3)]
         public static void EnsureRevenueCatConfig()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(RevenueCatConfigPath)!);
@@ -701,6 +732,33 @@ namespace CatCourier.Editor
             }
 
             AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem("Purrcel/Setup/Use Real RevenueCat for Next Gen Demo", priority = 12)]
+        public static void PrepareNextGenDemo()
+        {
+            EnsureRevenueCatConfig();
+            var config = AssetDatabase.LoadAssetAtPath<RevenueCatConfig>(RevenueCatConfigPath);
+            var serialized = new SerializedObject(config);
+            serialized.FindProperty("environment").enumValueIndex = (int)RevenueCatEnvironment.DevelopmentSandbox;
+            serialized.FindProperty("backend").enumValueIndex = (int)RevenueCatBackendSelection.Real;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+            Selection.activeObject = config;
+            Debug.Log("Real RevenueCat selected for the Android development demo. Enter the Test Store public key in the selected local config asset, then use Purrcel > Build > Android Next Gen Demo APK.");
+        }
+
+        [MenuItem("Purrcel/Build/Android Next Gen Demo APK")]
+        public static void BuildAndroidNextGenDemo()
+        {
+            var config = AssetDatabase.LoadAssetAtPath<RevenueCatConfig>(RevenueCatConfigPath);
+            if (config == null || !config.IsAndroidDemoReady)
+            {
+                throw new BuildFailedException("Next Gen demo requires sandbox mode, the real RevenueCat backend, and a Test Store or Google sandbox public key. Run Purrcel > Setup > Use Real RevenueCat for Next Gen Demo, then enter the key in the selected local config asset.");
+            }
+
+            BuildAndroid();
         }
 
         /// <summary>
@@ -749,9 +807,31 @@ namespace CatCourier.Editor
             }
         }
 
-        [MenuItem("Cat Courier/Build/Android Development APK")]
+        /// <summary>
+        /// Unity silently no-ops build menu items while the editor is in Play Mode — no
+        /// dialog, no console error, nothing in the log. The build simply never starts, and
+        /// it looks exactly like a build that is taking a very long time.
+        ///
+        /// Exiting Play Mode is not instantaneous, so this stops and asks for a second click
+        /// rather than starting a build mid-teardown, which produces an unreliable APK.
+        /// </summary>
+        private static void RequireEditorIdle()
+        {
+            if (!EditorApplication.isPlaying && !EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+
+            EditorApplication.isPlaying = false;
+            throw new BuildFailedException(
+                "Left Play Mode. Run the build again — Unity ignores build menu items while " +
+                "Play Mode is active, and it does so silently.");
+        }
+
+        [MenuItem("Purrcel/Build/Android Development APK")]
         public static void BuildAndroid()
         {
+            RequireEditorIdle();
             ApplyAll();
             Directory.CreateDirectory("Assets/Plugins/Android");
             var sdkRoot = System.Environment.GetEnvironmentVariable("CAT_COURIER_ANDROID_SDK");

@@ -53,7 +53,6 @@ namespace CatCourier.Generation
         };
 
         private readonly HashSet<DistrictId> unlockedDistricts = new();
-        private readonly HashSet<string> returnedStoryBeatIds = new();
         private readonly Dictionary<DistrictId, int> completedCheckpoints = new();
         private readonly HashSet<string> warnedMissingCombinations = new();
 
@@ -95,7 +94,6 @@ namespace CatCourier.Generation
             hasPreviousType = false;
             selectedDistanceMeters = 0f;
             nextDistanceMeters = Constants.CHECKPOINT_INTERVAL;
-            returnedStoryBeatIds.Clear();
             completedCheckpoints.Clear();
             warnedMissingCombinations.Clear();
             hasPendingDistrict = false;
@@ -444,24 +442,6 @@ namespace CatCourier.Generation
 
             CurrentDistrict = district;
             OnDistrictChanged?.Invoke(CurrentDistrict);
-        }
-
-        private StoryBeat GetFirstTimeStoryBeat(DistrictId district, int checkpointIndex)
-        {
-            var persisted = StoryBeatService.GetFirstTimeBeat(district, checkpointIndex);
-            if (persisted.HasStory)
-            {
-                returnedStoryBeatIds.Add(persisted.Id);
-                return persisted;
-            }
-
-            var beat = GetStoryBeatHook(district, checkpointIndex);
-            if (!beat.HasStory || !returnedStoryBeatIds.Add(beat.Id))
-            {
-                return default;
-            }
-
-            return beat;
         }
 
         private DistrictId FirstUnlockedDistrict()

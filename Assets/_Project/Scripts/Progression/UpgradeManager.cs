@@ -48,13 +48,6 @@ namespace CatCourier.Progression
             Refresh();
         }
 
-        public void SetBreedManager(CatBreedManager manager)
-        {
-            UnsubscribeFromBreeds();
-            breeds = manager;
-            Refresh();
-        }
-
         public UpgradeConfig Get(string id)
         {
             return !string.IsNullOrEmpty(id) && byId.TryGetValue(id, out var config) ? config : null;
@@ -115,8 +108,6 @@ namespace CatCourier.Progression
             var cost = GetNextCost(id);
             return cost >= 0 && (SaveSystem.Instance?.Data?.totalCoins ?? 0) >= cost;
         }
-
-        public int GetMaxLevel(string id) => Get(id)?.maxLevel ?? -1;
 
         public bool IsMaxLevel(string id)
         {
@@ -191,6 +182,9 @@ namespace CatCourier.Progression
                 GetValue(RunLoadoutService.CoinMultiplierId),
                 Mathf.Max(1, Mathf.RoundToInt(GetValue(RunLoadoutService.PackageSlotsId))));
             stats.SetCatBonuses(speedBonus, jumpBonus);
+            // The premium multiplier used to be applied here and again in
+            // RunLoadoutService.Build, so the two copies could disagree. BuildPlayerStats
+            // is the single owner; RunLoadoutService clones these stats.
             stats.SetPremiumCoinMultiplier(EntitlementChecker.Instance != null && EntitlementChecker.Instance.IsPremium ? 2f : 1f);
             stats.SetBreedCoinMultiplier(coinMultiplier);
             return stats;

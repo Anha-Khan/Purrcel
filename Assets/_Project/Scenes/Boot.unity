@@ -152,13 +152,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   useFakeMonetizationInEditor: 1
-  revenueCatConfig: {fileID: 11400000, guid: 17271898f738da14ba1d54c39cabe6ad, type: 2}
+  revenueCatConfig: {fileID: 11400000, guid: ab5c96ebd275e5d4980ecbc085ba4100, type: 2}
   chunkCatalog: {fileID: 11400000, guid: bcca9ac00f4f1d641bb96b98930d98fd, type: 2}
+  generatedCatBreeds:
+  - {fileID: 11400000, guid: 27b7832001e4d40a0b283e569142c9e5, type: 2}
+  - {fileID: 11400000, guid: 7bd2aaf360f1a48589c96e38662e6531, type: 2}
+  - {fileID: 11400000, guid: fe85a8c396db849098f64652e41ef872, type: 2}
+  - {fileID: 11400000, guid: 9a3d312afbc5540baadb92d57e577565, type: 2}
+  - {fileID: 11400000, guid: 1781b16a4db8846609c4638b53762062, type: 2}
+  generatedArtCatalog: {fileID: 11400000, guid: 652bf7fe9dcc64640a3019fc83c22a8f, type: 2}
+  uiFont: {fileID: 0}
   audioLibrary: {fileID: 11400000, guid: 2c2af69b9a3570f4e9ef6e8304a2e3d4, type: 2}
-  audioMixer: {fileID: 0}
-  musicMixerGroup: {fileID: 0}
-  sfxMixerGroup: {fileID: 0}
-  ambientMixerGroup: {fileID: 0}
+  audioMixer: {fileID: 24100000, guid: 570e061c4f026b047877c708edaa2c35, type: 2}
+  musicMixerGroup: {fileID: -3012855260904871596, guid: 570e061c4f026b047877c708edaa2c35, type: 2}
+  sfxMixerGroup: {fileID: 630007490639636346, guid: 570e061c4f026b047877c708edaa2c35, type: 2}
+  ambientMixerGroup: {fileID: 4084172976657334793, guid: 570e061c4f026b047877c708edaa2c35, type: 2}
 --- !u!4 &61646647
 Transform:
   m_ObjectHideFlags: 0

@@ -24,12 +24,12 @@ namespace CatCourier.Weather
             : 1f;
         public bool IsNight => Current == WeatherType.Night;
 
+        /// <summary>
+        /// Fired when the run's weather activates. The four granular events that used to
+        /// sit beside this were invoked but never subscribed to; the player reads the
+        /// properties directly, so they were removed rather than left as dead API.
+        /// </summary>
         public event Action<WeatherType> OnWeatherChanged;
-        public event Action<WeatherType> OnNextRunWeatherChanged;
-        public event Action<float> OnLandingSlideRequested;
-        public event Action<float> OnAirborneDriftRequested;
-        public event Action<float> OnVisibilityExposureChanged;
-        public event Action<float> OnDronePatrolSpeedMultiplierChanged;
 
         [SerializeField] private int randomSeed;
 
@@ -57,7 +57,6 @@ namespace CatCourier.Weather
 
             NextRunWeather = SelectWeightedWeather(random);
             hasNextRunWeather = true;
-            OnNextRunWeatherChanged?.Invoke(NextRunWeather);
         }
 
         public WeatherType ActivateNextWeather()
@@ -70,10 +69,6 @@ namespace CatCourier.Weather
             Current = NextRunWeather;
             WindDirection = SelectWindDirection(random);
             OnWeatherChanged?.Invoke(Current);
-            OnLandingSlideRequested?.Invoke(LandingSlideDistance);
-            OnAirborneDriftRequested?.Invoke(AirborneDriftAcceleration);
-            OnVisibilityExposureChanged?.Invoke(VisibilityExposureAdjustment);
-            OnDronePatrolSpeedMultiplierChanged?.Invoke(DronePatrolSpeedMultiplier);
             SelectNextWeather();
             return Current;
         }
@@ -85,10 +80,6 @@ namespace CatCourier.Weather
             Current = WeatherType.Clear;
             WindDirection = -1;
             OnWeatherChanged?.Invoke(Current);
-            OnLandingSlideRequested?.Invoke(0f);
-            OnAirborneDriftRequested?.Invoke(0f);
-            OnVisibilityExposureChanged?.Invoke(0f);
-            OnDronePatrolSpeedMultiplierChanged?.Invoke(1f);
         }
 
         public static WeatherType SelectWeightedWeather(System.Random source)

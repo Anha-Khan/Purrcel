@@ -9,7 +9,11 @@ namespace CatCourier.Core
     public enum WeatherType { Clear, Rain, Night, Wind }
     public enum PackageType { Normal, Fragile, Heavy, Urgent }
     public enum DistrictId { OldTown, Downtown, Harbour, Suburbs }
-    public enum PaywallSource { AfterRun3, LockedFeature, Settings }
+    public enum PaywallSource
+    {
+        AfterRun3,
+        Settings
+    }
     public enum PurchaseOutcome { Success, Cancelled, Error }
     public enum ChunkType { SmallGap, MediumGap, LargeGap, ObstacleDense, ObstacleSparse, HighPlatform, DropDown, Checkpoint }
 
@@ -83,6 +87,54 @@ namespace CatCourier.Core
         public const string OfferingDistricts = "iap_districts";
         public const string PackageHarbour = "harbour_unlock";
         public const string PackageSuburbs = "suburbs_unlock";
+
+        /// <summary>
+        /// Every purchasable package and the offering it belongs to. This is the single
+        /// source of truth: the paywall used to reverse-map package to offering by hand,
+        /// the fake backend encoded it a second time, and the tests a third. Adding a SKU
+        /// meant editing all three.
+        /// </summary>
+        private static readonly (string Package, string Offering)[] PackageOfferings =
+        {
+            (PackageMonthly, OfferingDefault),
+            (PackageAnnual, OfferingDefault),
+            (PackageRare, OfferingBreeds),
+            (PackageLegendary, OfferingBreeds),
+            (PackageHarbour, OfferingDistricts),
+            (PackageSuburbs, OfferingDistricts)
+        };
+
+        public static string OfferingFor(string packageId)
+        {
+            foreach (var (package, offering) in PackageOfferings)
+            {
+                if (package == packageId)
+                {
+                    return offering;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>Every package in an offering, in dashboard order.</summary>
+        public static string[] PackagesIn(string offeringId)
+        {
+            var result = new List<string>();
+            foreach (var (package, offering) in PackageOfferings)
+            {
+                if (offering == offeringId)
+                {
+                    result.Add(package);
+                }
+            }
+
+            return result.ToArray();
+        }
+
+        /// <summary>Every offering that has at least one package.</summary>
+        public static string[] AllOfferings() =>
+            new[] { OfferingDefault, OfferingBreeds, OfferingDistricts };
     }
 
     public enum SfxId
