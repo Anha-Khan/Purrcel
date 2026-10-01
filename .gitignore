@@ -8,6 +8,14 @@
 # verification guide stay on the developer machine. README.md is the
 # single public source of truth for this repository.
 /docs/
+# Engineering handoff log: spec questions, blockers, day-by-day status.
+# Internal record, not submission material. It was tracked until 2026-10-01
+# and is untracked rather than deleted, so the file remains on disk.
+#
+# NEXT-GEN-SUBMISSION.md is deliberately NOT listed. It is the build
+# instruction sheet, and the Shipaton Next Gen route requires the public
+# repository to keep those visible.
+HANDOFF.md
 
 # --- Unity generated directories ---------------------------------
 /[Ll]ibrary/
@@ -35,6 +43,11 @@
 *.app
 *.xcarchive
 *.unitypackage
+
+# Video/launch-tool output. Contains licensed stock music tracks as .mp3 —
+# committing them to a public repository is a licensing problem, and the
+# Shipaton submission requires only authorised music and art.
+brag-output/
 
 # --- Generated IDE and solution files ---------------------------
 .vs/
@@ -104,6 +117,38 @@ ExportOptions*.plist
 xcuserdata/
 Assets/Plugins/iOS/Pods/
 Podfile.lock
+
+# Unity Test Runner bootstrap scenes. It writes one per -runTests invocation and
+# normally deletes it; a killed run leaves them behind. They are never shipped.
+Assets/InitTestScene*.unity
+Assets/InitTestScene*.unity.meta
+
+# Brand generator output. Tools/brand/make-lockups.py writes intermediate SVGs here
+# before make-brand-assets.py rasterises them into Assets/_Project/Brand. The
+# intermediates and any bytecode are reproducible, so only the rasters are tracked.
+Tools/brand/out/
+Tools/brand/__pycache__/
+__pycache__/
+
+# ==============================================================
+# Android build byproducts
+# Unity and Gradle write these into the source tree during a build. They are
+# regenerated every time, so tracking them only produces churn. gradleTemplate.properties
+# and mainTemplate.gradle are deliberately NOT listed: those are authored inputs and are
+# already tracked.
+# ==============================================================
+Assets/Plugins/Android/AndroidManifest.xml
+Assets/Plugins/Android/launcherTemplate.properties
+# keystore.properties holds the keystore path AND its passwords in plain text.
+# *.keystore/*.jks below cover the binary, not the file that names the password.
+Assets/Plugins/Android/keystore.properties
+Assets/Plugins/Android/res/
+Assets/StreamingAssets/
+
+# Unity Recorder writes here by default. Capture footage for the submission is
+# build output, and a single take is easily larger than the whole repository.
+Assets/_Project/Recorder/
+Assets/_Project/Recordings/
 
 # ==============================================================
 # Intentionally TRACKED - do not add these to this file

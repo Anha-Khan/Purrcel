@@ -14,7 +14,7 @@ namespace CatCourier.Monetization
         Fake
     }
 
-    [CreateAssetMenu(fileName = "RevenueCatConfig", menuName = "Cat Courier/RevenueCat Config")]
+    [CreateAssetMenu(fileName = "RevenueCatConfig", menuName = "Purrcel/RevenueCat Config")]
     public sealed class RevenueCatConfig : ScriptableObject
     {
         [Header("Local development only. Keep production key selection explicit.")]
@@ -37,12 +37,36 @@ namespace CatCourier.Monetization
                                           (!string.IsNullOrWhiteSpace(developmentTestStorePublicKey) ||
                                            !string.IsNullOrWhiteSpace(developmentGooglePublicKey));
 
+        /// <summary>
+        /// Picks the Android public key for the current configuration.
+        ///
+        /// A RevenueCat Test Store key is a SEPARATE sandbox credential from the Play Store
+        /// key, and the SDK REJECTS it in a non-development build. So it may only be
+        /// selected when DEVELOPMENT_BUILD is defined — which the Next Gen demo APK is,
+        /// because BuildAndroidNextGenDemo routes through BuildAndroid and passes
+        /// BuildOptions.Development.
+        ///
+        /// The guard is load-bearing. An earlier version of this preferred the Test Store key
+        /// on environment alone, which sent a sandbox credential to production builds.
+        /// UNITY_EDITOR is in the condition so the selection stays testable in Edit Mode.
+        /// </summary>
+        public string ResolveAndroidKey()
+        {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            if (!IsProduction && !string.IsNullOrWhiteSpace(developmentTestStorePublicKey))
+            {
+                return developmentTestStorePublicKey;
+            }
+#endif
+            return GooglePublicKey;
+        }
+
         public string GetPublicKey()
         {
 #if UNITY_IOS
             return ApplePublicKey;
 #elif UNITY_ANDROID
-            return GooglePublicKey;
+            return ResolveAndroidKey();
 #else
             return string.Empty;
 #endif
@@ -61,20 +85,11 @@ namespace CatCourier.Monetization
 #endif
         }
 
-        public bool HasRequiredPublicKey()
-        {
-#if UNITY_IOS || UNITY_ANDROID
-            return !string.IsNullOrWhiteSpace(GetPublicKey());
-#else
-            return true;
-#endif
-        }
-
         private string SelectKey(string developmentKey, string productionKey)
         {
             if (environment == RevenueCatEnvironment.Production)
             {
-                return productionKey;
+                return productionKey ?? string.Empty;
             }
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
@@ -82,9 +97,9 @@ namespace CatCourier.Monetization
             // It must never leak into a non-development build: the SDK rejects Test Store keys there.
             return !string.IsNullOrWhiteSpace(developmentTestStorePublicKey)
                 ? developmentTestStorePublicKey
-                : developmentKey;
+                : developmentKey ?? string.Empty;
 #else
-            return developmentKey;
+            return developmentKey ?? string.Empty;
 #endif
         }
     }

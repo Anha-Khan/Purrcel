@@ -14,6 +14,7 @@ Repository: <https://github.com/Anha-Khan/Cat>
 - [What is not finished yet](#what-is-not-finished-yet)
 - [Requirements](#requirements)
 - [Getting started](#getting-started)
+- [Features shipped](#features-shipped)
 - [Running the game](#running-the-game)
 - [Controls](#controls)
 - [Gameplay systems](#gameplay-systems)
@@ -38,26 +39,28 @@ The game runs in Unity `2022.3.62f3`. The Game scene has a playable fallback rou
 |---|---|
 | Player controller, input, physics | Complete |
 | Procedural generation, chunk catalog, pooling | Playable fallback stream; authored catalog empty |
-| Obstacles, weather, packages, checkpoints | Complete |
+| Obstacles, weather, packages, checkpoints | Complete on the fallback route |
 | Scoring, combos, difficulty scaling | Complete |
 | Economy, upgrades, cat breeds | Complete |
 | RevenueCat boundary, entitlements, paywall | Complete (device verification pending) |
 | Ad gating with backend abstraction | Complete (fake backend only) |
-| Audio routing, crossfade, event relay | Complete (no clips yet) |
-| UI presenters (hub, HUD, pause, death) | Complete (IMGUI placeholders) |
+| Audio routing, crossfade, event relay | Complete (17 synthesised clips, no mixer yet) |
+| UI presenters (hub, HUD, pause, death) | Complete (IMGUI, Plus Jakarta Sans) |
 | Persistence with atomic writes and recovery | Complete |
 
-Latest Windows editor verification: **150/150 EditMode tests** and **31/31 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, checks that the Hub has a painted camera view, and proves an abandoned run still banks its coins.
+Latest Windows editor verification: **184/184 EditMode tests** and **32/32 PlayMode tests**. The PlayMode suite drives a 120 m run through randomized road hazards, verifies opening coin collection, checks that the Hub has a painted camera view, proves an abandoned run still banks its coins, and proves a fallback-route checkpoint actually delivers a package.
 
-Latest Android development build: **succeeded**, 0 compiler errors and 0 warnings, IL2CPP for ARMv7 + ARM64, target SDK 34. This is the first Android build covering the generated art and the current gameplay, so it supersedes the earlier pre-art APK. It has **not** yet been run on a device.
+The UI ships a bundled typeface — **Plus Jakarta Sans** (SIL OFL 1.1) at `Assets/_Project/Resources/PurrcelUI.ttf`, with its licence beside it. It is loaded by name from `Resources` rather than wired into a scene, so a fresh clone styles correctly with no setup step and a missing file degrades to IMGUI's built-in Arial instead of breaking every surface. `design.md` is the design system spec: palette with measured contrast ratios, type ramp, and the layout rule.
+
+Latest Android development build: **succeeded**, IL2CPP, target SDK 34. It has **not** yet been run on a device, and its first launch on hardware exposed a fatal bug that no editor test could: an exception inside a coroutine silently prevented the Hub scene from loading, leaving a blank screen. Boot now contains a monetization failure, so a purchase SDK can no longer prevent the game from starting.
 
 ## What is not finished yet
 
 These are content and account gates, not code defects. Nothing in this repository claims otherwise:
 
-- **Authored chunk prefabs.** `ChunkCatalog.asset` is empty. The fallback route now streams varied jump, slide, falling and pit hazards with coins, special coins and a shield booster. Its pit is a painted road opening with a gameplay trigger over continuous collision ground; authored gap geometry still needs work.
+- **Authored chunk prefabs.** `ChunkCatalog.asset` is empty. The fallback route now streams varied jump, slide, falling, pit and stumble hazards with coins, special coins and a shield booster, and it emits delivery checkpoints every `CHECKPOINT_INTERVAL` metres so packages, delivery score, story cards and district progression all run. Its pit is a painted road opening with a gameplay trigger over continuous collision ground; authored gap geometry still needs work. `PatrolObstacle`, `RollingObstacle` and `CheckpointMarker`-based authored chunks stay unreferenced until the catalog is populated.
 - **Art and UI polish.** Five painted cats, districts, roads and gameplay objects are integrated. Every menu is still IMGUI, laid out against the safe area but not a shipping interface.
-- **Audio clips and mixer.** The audio system is fully wired and silent-safe, but no clip assets exist yet.
+- **A human-authored soundtrack.** All 17 clips in `Assets/_Project/Audio` are synthesised by `Tools/make-audio.py`, not recorded. They are functional placeholders with correct looping and routing; swap them for real audio before treating the mix as final. The mixer asset and its Music/Sfx/Ambient groups are created by `Purrcel > Setup > Apply Audio`.
 - **A real ad SDK.** Only a deterministic fake backend ships. Ad serving is a provider decision; see [Economy and monetization](#economy-and-monetization).
 - **Real RevenueCat purchases, restore, and trial metadata.** `RealPurchasesBackend` is written and compiles, but it is compiled out in every environment a test can reach and has never executed. Only a device can prove it. Use a Test Store key; see [NEXT-GEN-SUBMISSION.md](NEXT-GEN-SUBMISSION.md).
 - **Device-level verification** of touch feel, animation visibility, safe-area layout on a notched phone, and frame pacing. A development APK for the current build now exists; none of this has been checked on hardware. iOS export requires macOS with Xcode.
@@ -83,23 +86,52 @@ Packages resolve from `Packages/manifest.json`:
 | RevenueCat Purchases Unity | 9.11.1 |
 | External Dependency Manager | 1.2.189 |
 
-Project configuration: Linear color space, IL2CPP scripting backend, .NET Standard 2.1 API level, landscape orientation, 60 FPS target, ARMv7 + ARM64 for Android, iOS deployment target 14.0.
+Project configuration: Linear color space, IL2CPP scripting backend, .NET Standard 2.1 API level, landscape orientation, 60 FPS target, ARM64 for Android, iOS deployment target 14.0.
 
 ---
 
 ## Getting started
 
 1. Install Unity `2022.3.62f3` and Android Build Support.
-2. Clone or download this repository and open the folder with that editor version.
-3. Allow package import to finish.
-4. Run **`Cat Courier > Setup > Apply All`**. It is idempotent and creates or repairs scenes, URP settings, the chunk catalog, the audio library, and a local RevenueCat config asset. On a fresh clone this first run also performs the initial import and compile that every later step depends on.
-5. Enter a RevenueCat **Test Store public key** for the Android Next Gen development demo, or platform sandbox keys for store testing, in `Assets/_Project/Config/RevenueCatConfig.asset`. This file is gitignored — never commit it.
-6. Run **`Cat Courier > Validate > Release Readiness`** to print a PASS/WARN/BLOCKER report describing exactly what content is still missing.
+2. Clone or download this repository.
+3. **Open project:** in the Unity Hub choose **Add > Add project from disk**, select this folder, and pick the `2022.3.62f3` editor. If that exact version is not installed, Hub offers to install it. Allow package import to finish — the first import is slow and every later step depends on it.
+4. Run **`Purrcel > Setup > Apply All`**. It is idempotent and creates or repairs scenes, URP settings, the chunk catalog, the audio library and mixer, and a local RevenueCat config asset. On a fresh clone this first run also performs the initial import and compile that every later step depends on.
+
+   5. Enter a RevenueCat **Test Store public key** for the Android Next Gen development demo, or platform sandbox keys for store testing, in `Assets/_Project/Config/RevenueCatConfig.asset`. This file is gitignored — never commit it.
+6. Run **`Purrcel > Validate > Release Readiness`** to print a PASS/WARN/BLOCKER report describing exactly what content is still missing.
 7. Open `Assets/_Project/Scenes/Boot.unity` and enter Play mode.
 
 > **Running command-line tests?** Run them before building, or at least let Unity import and compile once first. A `-runTests` invocation against a tree that last performed an Android player build can fail to resolve package assemblies such as Input System and URP, because they are rebuilt for the editor in the same pass. The project itself is valid; only the ordering is wrong. `Tools/verify-project.ps1` runs tests ahead of the build and also performs an import pass when it detects a cold clone.
 
+### Screenshots
+
+The required **1179 × 2556** screenshot must be captured from the running Android build, not mocked up — see [NEXT-GEN-SUBMISSION.md](NEXT-GEN-SUBMISSION.md). The ready-to-upload 1024 × 1024 app icon is [`Submission/cat-courier-icon-1024.png`](Submission/cat-courier-icon-1024.png).
+
 The design specification and the implementation plan that drove this build are maintained locally and are intentionally not committed.
+
+---
+
+## Features shipped
+
+Everything in this list runs in the shipped build. Nothing here is aspirational.
+
+**Core run.** Auto-run courier across a streamed procedural route. Jump, double jump once unlocked, slide, and a wall bounce. Death by static obstacle, pit, or falling road, with a continue that respawns you with two seconds of invincibility. Pause and resume mid-run.
+
+**Delivery loop.** You carry packages. Every `CHECKPOINT_INTERVAL` metres the route places a delivery checkpoint; reaching it delivers the carried packages, awards coins and score, replays a story card the first time you reach that district's checkpoint, and unlocks the next district. This is the actual core loop, not a placeholder.
+
+**Districts.** Old Town and Downtown are free from the start. Harbour and Suburbs open at 600 m and 1200 m. Crossing into a district changes the parallax art, the weather, and the music bed.
+
+**Economy.** Coins bank on death *and* on abandoning a run. Spend them on upgrades (sprint, jump, coin value, magnet, package slots, and more) and on cat breeds. Five breeds are authored and all five are wired.
+
+**Difficulty.** Obstacle spacing and hazard mix tighten with distance; special-coin and booster intervals shorten. The whole route is seeded and the seed is logged, so a run can be reproduced.
+
+**Monetization.** RevenueCat purchases, entitlements, and a paywall behind a clean backend interface. District packs grant a **1.25× coin multiplier in that district**. A fake backend ships for local development so the editor never talks to the network. Unfinished paid content is never shown on the paywall.
+
+**Audio.** 17 clips: one per SFX event and one looping bed per district plus the hub, routed through a Music/Sfx/Ambient mixer with a crossfade on district change and a volume dip on pause.
+
+**Persistence.** Atomic writes with a backup and recovery path, so a failed save mid-run cannot corrupt the profile or lose a banked run.
+
+**Ads.** Interstitial gating with per-run caps, a backend abstraction, and a development fake. No real ad SDK ships.
 
 ---
 
@@ -250,7 +282,7 @@ Offerings are `default` (monthly and annual subscriptions), `iap_breeds` (rare a
 
 The save file is `save.json` under `Application.persistentDataPath`:
 
-- **Windows** — `%USERPROFILE%\AppData\LocalLow\Cat Courier\Cat Courier\save.json`
+- **Windows** — `%USERPROFILE%\AppData\LocalLow\Purrcel\Purrcel\save.json`
 - **Android** — `/storage/emulated/0/Android/data/com.catcourier.game/files/save.json`
 
 It stores the coin bank, upgrade levels, selected and unlocked cats, unlocked districts, seen story beats, run history (best 10), completed run count, and paywall and trial flags.
@@ -264,10 +296,15 @@ Writes are atomic: serialize to a temporary file, validate it can be read back, 
 ### Unity Test Runner
 
 1. Open **Window > General > Test Runner**.
-2. Select **EditMode**, run all — 150 tests.
-3. Select **PlayMode**, run all — 31 tests.
+2. Select **EditMode**, run all - 151 tests.
+3. Select **PlayMode**, run all — 32 tests.
 
 The PlayMode suite proves save-path isolation by snapshotting `Application.persistentDataPath` and failing if it changes. Every PlayMode fixture inherits that harness, including the ones that load the real scenes.
+
+Two rules the harness enforces, both added after they cost a debugging session:
+
+- Any wait on player movement has a deadline. An unbounded wait hangs the whole run and produces **no report at all**, which is much harder to diagnose than one failing test.
+- Teardown unloads any scene still loaded. Scene tests unload inline after their asserts, so a failed assert skipped the unload and every later test failed against the leftover scene, each with a misleading message.
 
 ### Command line
 
@@ -287,19 +324,19 @@ The secret scanner never prints a matched value — only the path, line, rule, a
 ### Android
 
 1. Install Android Build Support and set the SDK path, or export `CAT_COURIER_ANDROID_SDK`.
-2. Run **`Cat Courier > Build > Build Android (Development)`**.
+2. Run **`Purrcel > Build > Build Android (Development)`**.
 3. The APK is written to `Builds/Android/CatCourier.apk`.
 
-Package `com.catcourier.game`, version `0.1.0`, min SDK 24, target SDK 34, ARMv7 + ARM64. Build artifacts are gitignored; attach the APK as a release asset rather than committing it. This is a development build, which is also why the fake monetization backend is the default in it. The most recent development APK is 276.6 MB, SHA-256 `1934307041A19339FB3CEAAFF514EA928383459BB9E89168410273BC1C198130`; that size is almost entirely the 239 generated PNGs, which Unity is importing uncompressed for the fast in-game loads.
+Package `com.catcourier.game`, version `0.1.0`, min SDK 24, target SDK 34, ARM64. ARM64 only because IL2CPP compiles native code once per ABI, and 32-bit devices are no longer in real use. Add `ARMv7` back in `CatCourierProjectSetup.ApplyPlayerSettings` if that ever changes. Build artifacts are gitignored; attach the APK as a release asset rather than committing it. This is a development build, which is also why the fake monetization backend is the default in it. The most recent development APK is 276.6 MB, SHA-256 `1934307041A19339FB3CEAAFF514EA928383459BB9E89168410273BC1C198130`; that size is almost entirely the 239 generated PNGs, which Unity is importing uncompressed for the fast in-game loads.
 
-For the Next Gen Android demo, use **Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo**, enter a Test Store public key, then **Cat Courier > Build > Android Next Gen Demo APK**. This path blocks an APK with fake purchases or a missing key.
+For the Next Gen Android demo, use **Purrcel > Setup > Use Real RevenueCat for Next Gen Demo**, enter a Test Store public key, then **Purrcel > Build > Android Next Gen Demo APK**. This path blocks an APK with fake purchases or a missing key.
 
 ### iOS
 
 Requires macOS with Xcode and iOS Build Support:
 
 1. Open the project on macOS with Unity `2022.3.62f3`.
-2. Run **`Cat Courier > Setup > Apply All`**.
+2. Run **`Purrcel > Setup > Apply All`**.
 3. Enter the Apple public sandbox key in `Assets/_Project/Config/RevenueCatConfig.asset`.
 4. Set the signing team and bundle identifier in Player Settings.
 5. Export from **File > Build Settings**.
@@ -308,7 +345,7 @@ Requires macOS with Xcode and iOS Build Support:
 
 1. Create a RevenueCat project and Android/iOS app.
 2. Add the sandbox products and entitlements listed above.
-3. Run **`Cat Courier > Setup > Apply All`** to create the local config asset and assign it to Boot.
+3. Run **`Purrcel > Setup > Apply All`** to create the local config asset and assign it to Boot.
 4. Enter the public sandbox keys locally. Never commit the config asset.
 5. Build to a device. The RevenueCat SDK does not execute in the Unity Editor.
 
@@ -326,7 +363,7 @@ Every content slot is optional at runtime, so content can be added without touch
 | Audio clip | Add it to the `AudioLibrary` asset under the matching id | Yes |
 | Paid breed or district | Set `isIAP` and `iapPackId` on the config, or register district chunks | Only once content exists; the paywall stays hidden otherwise |
 
-After registering, run **`Cat Courier > Setup > Apply All`** and then **`Cat Courier > Validate > Release Readiness`** to confirm the blockers cleared. The readiness check reports missing chunks, unwired audio, and unshippable paid content without fabricating assets or failing the build.
+After registering, run **`Purrcel > Setup > Apply All`** and then **`Purrcel > Validate > Release Readiness`** to confirm the blockers cleared. The readiness check reports missing chunks, unwired audio, and unshippable paid content without fabricating assets or failing the build.
 
 ---
 
@@ -346,11 +383,12 @@ Assets/_Project/Scripts/UI/            hub, HUD, pause, death, story and paywall
 Assets/_Project/Scripts/Monetization/  RevenueCat boundary, entitlements, ad gating
 Assets/_Project/Scripts/Audio/         audio manager, library, event relay
 Assets/_Project/Editor/                idempotent setup and release readiness validation
-Assets/_Project/Config/                chunk catalog, audio library, local RevenueCat config
+Assets/_Project/Config/                chunk catalog, audio library, mixer, local RevenueCat config
+Assets/_Project/Audio/                 synthesised SFX and music clips (Tools/make-audio.py)
 Assets/_Project/Scenes/                Boot, Hub, Game
-Assets/Tests/EditMode/                 150 fast tests
-Assets/Tests/PlayMode/                 31 scene and lifecycle tests
-Tools/                                 local verification scripts
+Assets/Tests/EditMode/                 151 fast tests
+Assets/Tests/PlayMode/                 32 scene and lifecycle tests
+Tools/                                 local verification scripts and make-audio.py
 HANDOFF.md                             open questions, blockers, and delivery status
 ```
 

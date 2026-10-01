@@ -56,7 +56,7 @@ namespace CatCourier.Editor
                 {
                     report.Add(ScenesCheck, ReleaseSeverity.Blocker,
                         $"Required scene '{name}' is missing.",
-                        $"Expected at {path}. Run Cat Courier > Setup > Create Missing Scenes.");
+                        $"Expected at {path}. Run Purrcel > Setup > Create Missing Scenes.");
                 }
                 else
                 {
@@ -129,7 +129,7 @@ namespace CatCourier.Editor
             {
                 report.Add(CatalogCheck, ReleaseSeverity.Blocker,
                     $"Chunk catalog asset is missing at {ChunkCatalogPath}.",
-                    "Run Cat Courier > Setup > Create Day 3 Systems, then author chunk prefabs.");
+                    "Run Purrcel > Setup > Create Day 3 Systems, then author chunk prefabs.");
                 return coverage;
             }
 
@@ -639,8 +639,8 @@ namespace CatCourier.Editor
                 // warning, before an APK goes out.
                 report.Add(SecretCheck, ReleaseSeverity.Blocker,
                     $"No local {RevenueCatConfigPath} asset, so a development build would run on FAKE purchases.",
-                    "Create it with Cat Courier > Setup > Create Local RevenueCat Config, then " +
-                    "Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo, and paste your Test Store public key. Never commit it.");
+                    "Create it with Purrcel > Setup > Create Local RevenueCat Config, then " +
+                    "Purrcel > Setup > Use Real RevenueCat for Next Gen Demo, and paste your Test Store public key. Never commit it.");
             }
             else
             {
@@ -679,7 +679,7 @@ namespace CatCourier.Editor
                 else
                     report.Add(SecretCheck, ReleaseSeverity.Warn,
                         "Android Next Gen demo is not configured for a real RevenueCat test purchase.",
-                        "Use Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo and enter a Test Store public key locally.");
+                        "Use Purrcel > Setup > Use Real RevenueCat for Next Gen Demo and enter a Test Store public key locally.");
             }
 
             if (File.Exists(Path.Combine(root, "LICENSE")))
@@ -733,7 +733,8 @@ namespace CatCourier.Editor
 
         private static readonly (string Label, string[] Keywords)[] RequiredReadmeSections =
         {
-            ("product description", new[] { "endless runner", "cat courier is" }),
+            // Keyword must track the README's opening line, which names the product Purrcel.
+            ("product description", new[] { "endless runner", "purrcel is" }),
             ("landscape side-view design", new[] { "landscape" }),
             ("screenshots or gifs", new[] { "screenshot", "screen shot", ".gif", "![", "demo video" }),
             ("gameplay loop", new[] { "gameplay", "core loop", "auto-run" }),

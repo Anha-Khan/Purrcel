@@ -160,35 +160,6 @@ namespace CatCourier.Monetization
             backend.RefreshCustomerInfo(success => done(success));
         }
 
-        public void ConfigureSdk(string publicKey, string appUserId, Action<bool> completed)
-        {
-            if (initializing)
-            {
-                completed(false);
-                return;
-            }
-
-            // A failed init disposes the backend, so this rebuilt one to allow a retry.
-            // That recovery path is what a tester needs after fixing a bad key.
-            if (backend == null)
-            {
-                backend = CreateBackend();
-            }
-
-            if (backend == null)
-            {
-                completed(false);
-                return;
-            }
-
-            initializing = true;
-            backend.Initialize(publicKey, appUserId, initialized =>
-            {
-                HandleInitialized(initialized);
-                completed(initialized);
-            });
-        }
-
         private void HandleInitialized(bool initialized)
         {
             initializing = false;
