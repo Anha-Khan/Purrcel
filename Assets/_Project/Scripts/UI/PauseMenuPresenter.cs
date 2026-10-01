@@ -27,7 +27,7 @@ namespace CatCourier.UI
 
             var audio = AudioManager.Instance;
             var muted = audio != null && audio.IsMuted;
-            var area = new Rect(Screen.width * 0.5f - 200f, Screen.height * 0.5f - 160f, 400f, 320f);
+            var area = DeathScreenPresenter.CenteredArea(400f, 320f, Screen.height * 0.5f - 160f);
             GUILayout.BeginArea(area, GUI.skin.box);
             GUILayout.Label("Paused");
             GUILayout.Label($"Score so far: {(score != null ? score.Score : 0)}");
@@ -47,7 +47,7 @@ namespace CatCourier.UI
             if (GUILayout.Button("Abandon Run", GUILayout.Height(40f)))
             {
                 audio?.PlaySfx(SfxId.UiTap);
-                game.ReturnToHub();
+                game.AbandonRun();
             }
 
             GUILayout.EndArea();

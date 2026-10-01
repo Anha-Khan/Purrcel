@@ -191,6 +191,9 @@ namespace CatCourier.Progression
                 GetValue(RunLoadoutService.CoinMultiplierId),
                 Mathf.Max(1, Mathf.RoundToInt(GetValue(RunLoadoutService.PackageSlotsId))));
             stats.SetCatBonuses(speedBonus, jumpBonus);
+            // The premium multiplier used to be applied here and again in
+            // RunLoadoutService.Build, so the two copies could disagree. BuildPlayerStats
+            // is the single owner; RunLoadoutService clones these stats.
             stats.SetPremiumCoinMultiplier(EntitlementChecker.Instance != null && EntitlementChecker.Instance.IsPremium ? 2f : 1f);
             stats.SetBreedCoinMultiplier(coinMultiplier);
             return stats;

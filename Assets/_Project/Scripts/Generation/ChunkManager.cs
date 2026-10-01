@@ -222,10 +222,14 @@ namespace CatCourier.Generation
             while (activeChunks.Count < Constants.ACTIVE_CHUNK_COUNT && attempts < Constants.ACTIVE_CHUNK_COUNT)
             {
                 attempts++;
-                if (!generator.TrySelectNext(out var selection) || !Spawn(selection))
+                if (!generator.TrySelectNext(out var selection))
                 {
                     return;
                 }
+
+                // A failed spawn is logged inside Spawn. Keep filling the window so one
+                // bad prefab costs a chunk rather than the whole route.
+                Spawn(selection);
             }
         }
 
@@ -247,9 +251,15 @@ namespace CatCourier.Generation
             var marker = chunk.GetComponent<ChunkMarker>();
             if (marker == null)
             {
+                // Returning false here aborted MaintainChunks for the whole frame, so
+                // one malformed prefab silently stalled the entire route. Pool the bad
+                // instance and report, but let generation keep filling the window.
                 chunk.SetActive(false);
                 pooledPrefabSources[chunk] = selection.Prefab;
                 pool.Add(chunk);
+                Debug.LogError(
+                    $"Chunk prefab '{selection.Prefab.name}' has no ChunkMarker. It was skipped; " +
+                    "fix the prefab or remove it from the catalog.");
                 return false;
             }
 

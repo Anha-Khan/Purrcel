@@ -57,7 +57,7 @@ namespace CatCourier.UI
 
             var result = game.LastRun;
             var delivered = result.PackagesDelivered > 0;
-            var area = new Rect(Screen.width * 0.5f - 260f, 60f, 520f, Screen.height - 120f);
+            var area = CenteredArea(520f, Screen.height - 120f, 60f);
             GUILayout.BeginArea(area, GUI.skin.box);
             GeneratedUiSprite.Draw(GeneratedArtCatalog.Frame(GeneratedArtCatalog.Active?.resultsIcons, delivered ? 0 : 2), 72f, 72f);
             GUILayout.Label(delivered ? "DELIVERED" : "WIPED OUT");
@@ -65,13 +65,33 @@ namespace CatCourier.UI
             GUILayout.Label($"Distance: {result.DistanceMeters:0} m");
             GUILayout.Label($"Packages delivered: {result.PackagesDelivered}");
             GUILayout.Label($"Run coins: {result.CoinsCollected}");
-            GUILayout.Label($"Bank: {SaveSystem.Instance?.TotalCoins ?? 0}");
+            // CoinManager.Bank is the live total including this run. Reading the
+            // save here showed the pre-run value next to the HUD's correct number.
+            GUILayout.Label($"Bank: {BankedCoins()}");
             GUILayout.Label($"District: {result.DistrictReached}");
 
             DrawContinueBlock();
             DrawAdBlock();
             DrawResultActions();
             GUILayout.EndArea();
+        }
+
+        /// <summary>
+        /// A fixed-size box centred inside the safe area, so a notch in landscape
+        /// cannot push the result panel off screen or under the cutout.
+        /// </summary>
+        internal static Rect CenteredArea(float width, float height, float topMargin = 0f)
+        {
+            var safe = HubLayout.SafeRect;
+            var x = safe.x + (safe.width - width) * 0.5f;
+            var y = Screen.height - safe.yMax + topMargin;
+            return new Rect(x, y, Mathf.Min(width, safe.width), Mathf.Min(height, safe.height - topMargin));
+        }
+
+        private static int BankedCoins()
+        {
+            var coins = FindObjectOfType<Coins.CoinManager>();
+            return coins != null ? coins.Bank : SaveSystem.Instance?.TotalCoins ?? 0;
         }
 
         private void DrawContinueBlock()

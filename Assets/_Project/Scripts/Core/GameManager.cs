@@ -179,11 +179,41 @@ namespace CatCourier.Core
             }
         }
 
-        public void ReturnToHub()
+        /// <summary>
+        /// Banks a run the player quit from the pause menu. The result is recorded
+        /// exactly as a natural death records it, so abandoning never costs the
+        /// coins, score, or history entry the run already earned.
+        /// </summary>
+        public void AbandonRun()
         {
-            if (State == GameState.Dead && !FinalizePendingRun())
+            if (hasPendingRunResult)
             {
                 return;
+            }
+
+            if (RunCoordinator.Active == null)
+            {
+                ReturnToHub();
+                return;
+            }
+
+            continuePending = false;
+            Time.timeScale = 1f;
+            LastRun = RunCoordinator.Active.BuildAbandonResult();
+            pendingRunResult = LastRun;
+            hasPendingRunResult = true;
+            FinalizePendingRun();
+            ReturnToHub();
+        }
+
+        public void ReturnToHub()
+        {
+            if (State == GameState.Dead && hasPendingRunResult && !FinalizePendingRun())
+            {
+                // Trapping the player on the death screen is worse than losing one
+                // run, so report the failed write and let them leave.
+                Debug.LogError("Could not save the completed run. Returning to the hub without banking it.");
+                hasPendingRunResult = false;
             }
 
             if (SceneLoader.Instance == null)

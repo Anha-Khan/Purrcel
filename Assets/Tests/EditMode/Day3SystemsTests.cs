@@ -163,8 +163,8 @@ namespace CatCourier.Tests
         public void DistrictEligibility_FollowsDistancePremiumAndSavedUnlocks()
         {
             Assert.That(RunLoadoutService.GetEligibleDistricts(0f, false, Array.Empty<string>()), Is.EquivalentTo(new[] { DistrictId.OldTown, DistrictId.Downtown }));
-            Assert.That(RunLoadoutService.GetEligibleDistricts(600f, false, Array.Empty<string>()), Does.Contain(DistrictId.Harbour));
-            Assert.That(RunLoadoutService.GetEligibleDistricts(1200f, false, Array.Empty<string>()), Does.Contain(DistrictId.Suburbs));
+            Assert.That(RunLoadoutService.GetEligibleDistricts(RunLoadoutService.HarbourReachDistance, false, Array.Empty<string>()), Does.Contain(DistrictId.Harbour));
+            Assert.That(RunLoadoutService.GetEligibleDistricts(RunLoadoutService.SuburbsReachDistance, false, Array.Empty<string>()), Does.Contain(DistrictId.Suburbs));
             Assert.That(RunLoadoutService.GetEligibleDistricts(0f, true, Array.Empty<string>()), Does.Contain(DistrictId.Suburbs));
         }
 

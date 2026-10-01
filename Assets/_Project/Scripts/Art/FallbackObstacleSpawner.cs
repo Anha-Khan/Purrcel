@@ -29,8 +29,34 @@ namespace CatCourier.Art
         private int sequence;
         private System.Random random;
         private bool configured;
+        private int lastSpecialInterval = 65;
+        private int lastBoostInterval = 110;
         private Sprite flatSprite;
         private Texture2D flatTexture;
+
+        /// <summary>0..1 difficulty progress for a run distance, matching DifficultyManager levels 0-10.</summary>
+        public static float DifficultyProgress(float distanceMeters)
+        {
+            return Mathf.Clamp01(distanceMeters / (Constants.DIFFICULTY_STEP_DISTANCE * 10f));
+        }
+
+        /// <summary>
+        /// Near/far hazard spacing for a run distance. Tightens from 9.5-13.5 at the
+        /// start of a run to 6.2-9.0 at maximum difficulty, so a long run gets harder.
+        /// </summary>
+        public static Vector2 SpacingRange(float distanceMeters)
+        {
+            var t = DifficultyProgress(distanceMeters);
+            return new Vector2(Mathf.Lerp(9.5f, 6.2f, t), Mathf.Lerp(13.5f, 9f, t));
+        }
+
+        /// <summary>Metres between special coins. Rarer late so a long run still pays more per metre.</summary>
+        public static float SpecialCoinInterval(float distanceMeters) =>
+            Mathf.Lerp(65f, 40f, DifficultyProgress(distanceMeters));
+
+        /// <summary>Metres between shield boosters.</summary>
+        public static float BoostInterval(float distanceMeters) =>
+            Mathf.Lerp(110f, 70f, DifficultyProgress(distanceMeters));
 
         public void Configure(Transform root, PlayerController runner, Camera camera,
             StaticObstacle staticObstacle, BounceObstacle bounceObstacle,
@@ -47,6 +73,8 @@ namespace CatCourier.Art
             art = catalog;
             random = new System.Random(unchecked(Environment.TickCount ^ runner.GetInstanceID()));
             sequence = 0;
+            // Seeded from the clock, so log it: a bug report needs a replayable route.
+            Debug.Log($"[FallbackObstacleSpawner] seed={random.Next()} startX={runner.DistanceMeters:0.00}");
             nextSpawnX = Mathf.Max(27f, runner.DistanceMeters + 27f);
             nextSpecialX = 60f;
             nextBoostX = 105f;
@@ -84,15 +112,29 @@ namespace CatCourier.Art
             var safety = 0;
             while (nextSpawnX <= spawnThrough && safety++ < 8)
                 SpawnNext();
+            // Re-anchor the reward cursors when the interval shrinks, so a tightening
+            // curve never stacks two rewards on the same metre.
+            var specialInterval = Mathf.RoundToInt(SpecialCoinInterval(player.DistanceMeters));
+            var boostInterval = Mathf.RoundToInt(BoostInterval(player.DistanceMeters));
+            if (specialInterval != lastSpecialInterval)
+            {
+                nextSpecialX += specialInterval - lastSpecialInterval;
+                lastSpecialInterval = specialInterval;
+            }
+            if (boostInterval != lastBoostInterval)
+            {
+                nextBoostX += boostInterval - lastBoostInterval;
+                lastBoostInterval = boostInterval;
+            }
             while (nextSpecialX <= spawnThrough)
             {
                 SpawnCoin(nextSpecialX, 1.35f, true);
-                nextSpecialX += 65f;
+                nextSpecialX += specialInterval;
             }
             while (nextBoostX <= spawnThrough)
             {
                 SpawnBoost(nextBoostX);
-                nextBoostX += 110f;
+                nextBoostX += boostInterval;
             }
 
             var recycleBefore = player.DistanceMeters - visibleAhead - 18f;
@@ -116,7 +158,8 @@ namespace CatCourier.Art
             if (sequence > 0 && sequence % bag.Length == 0) ShuffleBag();
             var kind = bag[sequence % bag.Length];
             var x = nextSpawnX;
-            var spacing = Mathf.Lerp(9.5f, 13.5f, (float)random.NextDouble());
+            var spacing = Mathf.Lerp(SpacingRange(player.DistanceMeters).x,
+                SpacingRange(player.DistanceMeters).y, (float)random.NextDouble());
             switch (kind)
             {
                 case HazardKind.Low: SpawnLow(x, false); break;

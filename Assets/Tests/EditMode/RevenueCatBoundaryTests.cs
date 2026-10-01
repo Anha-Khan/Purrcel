@@ -11,13 +11,19 @@ namespace CatCourier.Tests
         {
             var backend = new FakePurchasesBackend();
 
+            // ponytail: assertions live in the callback, so an async backend would
+            // skip them and the test would pass green. invoked guards that.
+            var invoked = false;
             backend.GetPackage(RevenueCatIds.OfferingDefault, RevenueCatIds.PackageMonthly, (found, package) =>
             {
+                invoked = true;
                 Assert.That(found, Is.True);
                 Assert.That(package.PackageId, Is.EqualTo(RevenueCatIds.PackageMonthly));
                 Assert.That(package.PriceString, Is.Not.Empty);
                 Assert.That(package.HasFreeTrial, Is.True);
             });
+
+            Assert.That(invoked, Is.True, "GetPackage never invoked its completion callback");
         }
 
         [Test]

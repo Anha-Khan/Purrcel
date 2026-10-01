@@ -55,7 +55,7 @@ namespace CatCourier.UI
                 return;
             }
 
-            var area = new Rect(Screen.width * 0.5f - 320f, 40f, 640f, 110f);
+            var area = DeathScreenPresenter.CenteredArea(640f, 110f, 40f);
             GUILayout.BeginArea(area, GUI.skin.box);
             GUILayout.Label(text, GUILayout.ExpandHeight(true));
             if (GUILayout.Button("Skip", GUILayout.Width(90f), GUILayout.Height(24f)))

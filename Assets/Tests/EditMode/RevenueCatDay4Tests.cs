@@ -56,6 +56,7 @@ namespace CatCourier.Tests
                 RevenueCatIds.PackageSuburbs
             };
 
+            var returned = new List<string>();
             foreach (var offeringId in new[] { RevenueCatIds.OfferingDefault, RevenueCatIds.OfferingBreeds, RevenueCatIds.OfferingDistricts })
             {
                 var found = false;
@@ -66,10 +67,14 @@ namespace CatCourier.Tests
                     {
                         Assert.That(expected, Does.Contain(package.PackageId));
                         Assert.That(package.PriceString, Is.Not.Empty);
+                        returned.Add(package.PackageId);
                     }
                 });
-                Assert.That(found, Is.True);
+                Assert.That(found, Is.True, $"{offeringId} never invoked its completion callback");
             }
+
+            // Containment alone would pass if an offering returned only one package.
+            Assert.That(returned, Is.EquivalentTo(expected));
         }
 
         [Test]
@@ -93,10 +98,16 @@ namespace CatCourier.Tests
                 Assert.That(checker.HasBreedPack(Constants.ENTITLEMENT_LEGEND_PACK), Is.False);
                 Assert.That(checker.HasDistrict(DistrictId.Harbour), Is.True);
                 Assert.That(checker.HasDistrict(DistrictId.Suburbs), Is.False);
+                // Free districts have no entitlement id, but they are never locked.
+                Assert.That(checker.HasDistrict(DistrictId.OldTown), Is.True);
+                Assert.That(checker.HasDistrict(DistrictId.Downtown), Is.True);
                 Assert.That(events, Is.EqualTo(1));
 
                 checker.SetEntitlements(Array.Empty<string>());
                 Assert.That(checker.IsPremium, Is.False);
+                Assert.That(checker.HasDistrict(DistrictId.Harbour), Is.False);
+                Assert.That(checker.HasDistrict(DistrictId.OldTown), Is.True,
+                    "Losing entitlements must not lock the always-free districts.");
             }
             finally
             {

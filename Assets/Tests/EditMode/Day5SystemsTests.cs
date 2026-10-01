@@ -42,6 +42,9 @@ namespace CatCourier.Tests
 
             SetStaticInstance(typeof(SaveSystem), null);
             SetStaticInstance(typeof(EntitlementChecker), null);
+            SetStaticInstance(typeof(GameManager), null);
+            SetStaticInstance(typeof(AdManager), null);
+            Time.timeScale = 1f;
             if (saveHost != null)
             {
                 Object.DestroyImmediate(saveHost);
@@ -326,6 +329,191 @@ namespace CatCourier.Tests
                 onDone?.Invoke(true);
                 onDone?.Invoke(true);
             }
+        }
+
+        private sealed class ThrowingAdBackend : IAdBackend
+        {
+            public void ShowInterstitial(string placementId, Action onClosed) =>
+                throw new InvalidOperationException("no network");
+
+            public void ShowRewarded(string placementId, Action<bool> onDone) =>
+                throw new InvalidOperationException("no network");
+        }
+
+        private sealed class CountingAdBackend : IAdBackend
+        {
+            public int Interstitials;
+
+            public void ShowInterstitial(string placementId, Action onClosed)
+            {
+                Interstitials++;
+                onClosed?.Invoke();
+            }
+
+            public void ShowRewarded(string placementId, Action<bool> onDone) => onDone?.Invoke(true);
+        }
+
+        [Test]
+        public void PremiumCoinMultiplier_HasExactlyOneOwner()
+        {
+            // BuildPlayerStats owns the 2x premium rule. RunLoadoutService used to apply
+            // it a second time on the cloned stats, so the two copies could disagree.
+            entitlementHost = new GameObject("EntitlementMultiplierDay5Test");
+            var entitlement = entitlementHost.AddComponent<EntitlementChecker>();
+            SetStaticInstance(typeof(EntitlementChecker), entitlement);
+            entitlement.SetEntitlements(new[] { Constants.ENTITLEMENT_PREMIUM });
+
+            var host = new GameObject("MultiplierOwnerDay5Test");
+            try
+            {
+                var upgrades = host.AddComponent<UpgradeManager>();
+                upgrades.SetConfigs(Array.Empty<UpgradeConfig>());
+
+                var fromUpgrades = upgrades.Stats;
+                Assert.That(fromUpgrades.PremiumCoinMultiplier, Is.EqualTo(2f));
+
+                var loadout = RunLoadoutService.Build();
+                Assert.That(loadout.Stats.PremiumCoinMultiplier, Is.EqualTo(2f),
+                    "Cloning the loadout must not re-apply or drop the premium multiplier.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void DistrictReachDistances_AreDefinedInOnePlace()
+        {
+            Assert.That(RunLoadoutService.HarbourReachDistance, Is.EqualTo(600f));
+            Assert.That(RunLoadoutService.SuburbsReachDistance, Is.EqualTo(1200f));
+
+            // Free players reach both on distance alone, which is why the district packs
+            // must grant something extra rather than the district itself.
+            var free = RunLoadoutService.GetEligibleDistricts(1200f, false, Array.Empty<string>());
+            Assert.That(free, Does.Contain(DistrictId.Harbour));
+            Assert.That(free, Does.Contain(DistrictId.Suburbs));
+            Assert.That(RunLoadoutService.HarbourPackCoinBonus, Is.GreaterThan(1f),
+                "A pack whose district already unlocks free needs a bonus to be worth buying.");
+            Assert.That(RunLoadoutService.SuburbsPackCoinBonus, Is.GreaterThan(1f));
+        }
+
+        [Test]
+        public void AdManager_ContinueDoesNotRestoreThePerRunInterstitial()
+        {
+            var host = new GameObject("AdManagerContinueDay5Test");
+            try
+            {
+                var managerHost = new GameObject("GameManagerAdDay5Test");
+                var manager = managerHost.AddComponent<GameManager>();
+                var ads = host.AddComponent<AdManager>();
+                var backend = new CountingAdBackend();
+                ads.SetBackend(backend);
+
+                // AddComponent does not run Awake in an EditMode test, so claim the
+                // singleton explicitly the way GameManagerTests does.
+                var claim = typeof(GameManager).GetMethod("ClaimSingleton", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(claim, Is.Not.Null);
+                Assert.That(claim.Invoke(manager, null), Is.True, "The manager must own the singleton.");
+                HookAdManagerToGameManager(ads);
+
+                InvokeState(manager, GameState.Hub);
+                InvokeState(manager, GameState.Running);
+                Assert.That(ads.InterstitialShownThisRun, Is.False);
+                ads.ShowDeathInterstitial(() => { });
+                Assert.That(backend.Interstitials, Is.EqualTo(1));
+
+                // A continue moves Dead -> Running. That must not re-arm the cap.
+                InvokeState(manager, GameState.Dead);
+                InvokeState(manager, GameState.Running);
+                ads.ShowDeathInterstitial(() => { });
+                Assert.That(backend.Interstitials, Is.EqualTo(1),
+                    "A second death after a continue must not show a second interstitial.");
+                Assert.That(ads.InterstitialShownThisRun, Is.True);
+
+                // Only returning to the Hub and starting again re-arms it.
+                InvokeState(manager, GameState.Hub);
+                InvokeState(manager, GameState.Running);
+                Assert.That(ads.InterstitialShownThisRun, Is.False);
+                ads.ShowDeathInterstitial(() => { });
+                Assert.That(backend.Interstitials, Is.EqualTo(2));
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+                var managers = Object.FindObjectsOfType<GameManager>();
+                foreach (var manager in managers)
+                    Object.DestroyImmediate(manager.gameObject);
+            }
+        }
+
+        [Test]
+        public void AdManager_FailedInterstitialLoadKeepsThePerRunSlot()
+        {
+            var host = new GameObject("AdManagerFailDay5Test");
+            try
+            {
+                var ads = host.AddComponent<AdManager>();
+                ads.SetBackend(new ThrowingAdBackend());
+
+                var closed = 0;
+                ads.ShowDeathInterstitial(() => closed++);
+
+                Assert.That(closed, Is.EqualTo(1), "A failed load must still release the flow.");
+                Assert.That(ads.InterstitialShownThisRun, Is.False,
+                    "A failed load must not burn the run's one permitted interstitial.");
+
+                // A working backend can still use the slot.
+                var backend = new CountingAdBackend();
+                ads.SetBackend(backend);
+                ads.ShowDeathInterstitial(() => { });
+                Assert.That(backend.Interstitials, Is.EqualTo(1));
+                Assert.That(ads.InterstitialShownThisRun, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void AdManager_WithoutBackendSkipsTheInterstitialEntirely()
+        {
+            var host = new GameObject("AdManagerNoBackendDay5Test");
+            try
+            {
+                var ads = host.AddComponent<AdManager>();
+                ads.SetBackend(null);
+
+                var closed = 0;
+                ads.ShowDeathInterstitial(() => closed++);
+
+                Assert.That(closed, Is.EqualTo(1));
+                Assert.That(ads.State, Is.EqualTo(AdFlowState.NotEligible));
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        private static void InvokeState(GameManager manager, GameState state)
+        {
+            var method = typeof(GameManager).GetMethod("SetState", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            method.Invoke(manager, new object[] { state });
+        }
+
+        /// <summary>
+        /// AdManager subscribes to GameManager.OnStateChanged lazily from Update, which
+        /// never runs in an EditMode [Test]. Call it directly so the state machine under
+        /// test is actually the one shipping.
+        /// </summary>
+        private static void HookAdManagerToGameManager(AdManager ads)
+        {
+            var method = typeof(AdManager).GetMethod("TrackGameManager", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            method.Invoke(ads, null);
         }
     }
 }

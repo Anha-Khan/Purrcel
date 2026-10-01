@@ -122,7 +122,10 @@ namespace CatCourier.Audio
             ApplyMusicVolumes();
         }
 
-        public void PlaySfx(SfxId id)
+        public void PlaySfx(SfxId id) => PlaySfx(id, 1f);
+
+        /// <summary>Plays a one-shot with an extra volume scale, e.g. softer for a light landing.</summary>
+        public void PlaySfx(SfxId id, float volumeScale)
         {
             if (IsMuted || library == null)
             {
@@ -141,7 +144,7 @@ namespace CatCourier.Audio
             }
 
             voice.pitch = ResolvePitch(pitchVariance);
-            voice.PlayOneShot(clip, volume);
+            voice.PlayOneShot(clip, volume * Mathf.Clamp01(volumeScale));
         }
 
         public void PlayMusic(MusicId id)

@@ -109,8 +109,6 @@ namespace CatCourier.Core
             chunkManager.SetUnlockedDistricts(DistrictUnlockService.GetEligible(player != null ? player.DistanceMeters : 0f, loadout?.IsPremium == true));
             chunkManager.OnCheckpointReached -= HandleCheckpointReached;
             chunkManager.OnCheckpointReached += HandleCheckpointReached;
-            chunkManager.OnDistrictChanged -= HandleDistrictChanged;
-            chunkManager.OnDistrictChanged += HandleDistrictChanged;
             if (packages != null)
             {
                 packages.OnDeliveryScorePulseRequested -= HandleDeliveryScorePulse;
@@ -152,10 +150,6 @@ namespace CatCourier.Core
             score?.SetDeliveryPulse(multiplier, duration);
         }
 
-        private void HandleDistrictChanged(DistrictId district)
-        {
-        }
-
         private void UpdateDistrictUnlocks()
         {
             var distance = player != null ? player.DistanceMeters : 0f;
@@ -181,6 +175,15 @@ namespace CatCourier.Core
             return camera != null ? camera.ViewportToWorldPoint(Vector3.zero).y : -16f;
         }
 
+        /// <summary>
+        /// Builds the result for a run the player quit from the pause menu, so
+        /// <see cref="GameManager.AbandonRun"/> can bank it like a natural death.
+        /// </summary>
+        public RunResult BuildAbandonResult()
+        {
+            return BuildResult(score?.Score ?? 0L, coins?.RunCoins ?? 0);
+        }
+
         public void RespawnFromContinue()
         {
             player?.RespawnFromContinue();
@@ -196,7 +199,6 @@ namespace CatCourier.Core
             if (chunkManager != null)
             {
                 chunkManager.OnCheckpointReached -= HandleCheckpointReached;
-                chunkManager.OnDistrictChanged -= HandleDistrictChanged;
             }
 
             if (packages != null)

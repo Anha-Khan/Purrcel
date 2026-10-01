@@ -106,6 +106,59 @@ namespace CatCourier.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator AbandonRunFromPause_BanksTheCoinsTheRunEarned()
+        {
+            var save = CreateTempSaveSystem();
+            var game = CreateGameManager(out _);
+            var player = CreatePlayer("AbandonRunPlayer");
+
+            // Attach the coin/score components before the coordinator resolves its
+            // references, exactly as the real Game scene orders them.
+            var coins = player.gameObject.AddComponent<CatCourier.Coins.CoinManager>();
+            player.gameObject.AddComponent<CatCourier.Scoring.ScoreManager>();
+            coins.Configure(1f, 1f, 1f, 0f);
+
+            var coordinator = CreateRunCoordinator();
+            yield return null;
+
+            game.StartRun();
+            game.PauseRun();
+            Assert.That(game.State, Is.EqualTo(GameState.Paused));
+
+            // Simulate a run that earned coins before the player quit.
+            coins.Collect(12);
+
+            var bankBefore = coins.Bank;
+            Assert.That(bankBefore, Is.EqualTo(12));
+
+            game.AbandonRun();
+
+            Assert.That(save.Data.totalCoins, Is.EqualTo(12),
+                "Abandoning from the pause menu must bank the coins the run earned.");
+            Assert.That(save.Data.totalRunsCompleted, Is.EqualTo(1),
+                "An abandoned run is a completed run and belongs in the history.");
+            Assert.That(save.Data.runHistory.Count, Is.EqualTo(1));
+            Assert.That(game.State, Is.EqualTo(GameState.Hub));
+
+            // Abandoning twice must not double-count.
+            game.AbandonRun();
+            Assert.That(save.Data.totalCoins, Is.EqualTo(12));
+            Assert.That(save.Data.totalRunsCompleted, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator AbandonRun_WithNoCoordinatorStillReturnsToHub()
+        {
+            var game = CreateGameManager(out _);
+            game.StartRun();
+            game.PauseRun();
+
+            game.AbandonRun();
+            Assert.That(game.State, Is.EqualTo(GameState.Hub));
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator RepeatedReturnToHub_WithoutARunIsSafe()
         {
             var save = CreateTempSaveSystem();

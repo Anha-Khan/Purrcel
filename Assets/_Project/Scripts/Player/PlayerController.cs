@@ -37,6 +37,7 @@ namespace CatCourier.Player
         private float wallBounceTimer;
         private float invincibilityTimer;
         private float groundSurfaceTop;
+        private float stumbleSlowdown = 1f;
         private bool initialized;
 
         public PlayerState State { get; private set; } = PlayerState.Running;
@@ -168,7 +169,25 @@ namespace CatCourier.Player
         {
             var speed = (weatherManager?.SpeedMultiplier ?? 1f) * (packageManager?.SpeedMultiplier ?? 1f);
             var jump = packageManager?.JumpMultiplier ?? 1f;
-            stats.SetExternalMultipliers(speed, jump);
+            stats.SetExternalMultipliers(speed * stumbleSlowdown, jump);
+        }
+
+        /// <summary>Applies a temporary slow without capturing the current multipliers.</summary>
+        public void ApplyStumbleSlowdown(float multiplier)
+        {
+            stumbleSlowdown = Mathf.Max(0f, multiplier);
+            ApplyRuntimeModifiers();
+        }
+
+        /// <summary>
+        /// Clears a stumble and recomposes weather x package from live values. The
+        /// stumble used to write back the multipliers it captured on contact, which
+        /// erased any weather or package change that happened while it was active.
+        /// </summary>
+        public void ClearStumbleSlowdown()
+        {
+            stumbleSlowdown = 1f;
+            ApplyRuntimeModifiers();
         }
 
         public void ConfigureWorldDeathY(float value)

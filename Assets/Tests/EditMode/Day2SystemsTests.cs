@@ -10,6 +10,22 @@ namespace CatCourier.Tests
 {
     public sealed class Day2SystemsTests
     {
+        // ponytail: timeScale and the GameManager singleton are global. Without this
+        // the fixture leaks both, and the suite only passed by accident of test order.
+        [SetUp]
+        public void ResetGlobalState()
+        {
+            Time.timeScale = 1f;
+            ClearSingleton<GameManager>();
+        }
+
+        [TearDown]
+        public void RestoreGlobalState()
+        {
+            Time.timeScale = 1f;
+            ClearSingleton<GameManager>();
+        }
+
         [Test]
         public void PlayerStats_UsesTimeFormulaAndCapsSpeed()
         {
@@ -293,7 +309,6 @@ namespace CatCourier.Tests
         [Test]
         public void DeathDelay_CannotBePausedByUiButton()
         {
-            Time.timeScale = 1f;
             var managerHost = new GameObject("DeathPauseManagerDay2Test");
             var playerHost = CreatePlayer(out var player);
             try
@@ -489,6 +504,12 @@ namespace CatCourier.Tests
             {
                 Object.DestroyImmediate(host);
             }
+        }
+
+        private static void ClearSingleton<T>() where T : class
+        {
+            var property = typeof(T).GetProperty("Instance", BindingFlags.Static | BindingFlags.Public);
+            property?.GetSetMethod(true)?.Invoke(null, new object[] { null });
         }
 
         private static object InvokePrivate(object target, string methodName, params object[] arguments)

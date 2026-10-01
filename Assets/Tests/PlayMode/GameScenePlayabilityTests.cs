@@ -12,7 +12,10 @@ using UnityEngine.TestTools;
 
 namespace CatCourier.Tests.PlayMode
 {
-    public sealed class GameScenePlayabilityTests
+    // Inherits the harness for its save-path byte snapshot and static resets. This
+    // suite loads the real Hub and Game scenes, so it needs that guard even more
+    // than the suites that build their own objects.
+    public sealed class GameScenePlayabilityTests : Day6PlayModeTestBase
     {
         [UnityTest]
         public IEnumerator HubScene_HasPaintedCamera()

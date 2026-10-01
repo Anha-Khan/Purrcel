@@ -80,8 +80,9 @@ namespace CatCourier.UI
         private void OnGUI()
         {
             EnsureStyles();
-            var width = Screen.width * 0.63f;
-            GUI.Label(new Rect(36f, 25f, width - 230f, 54f), "PURRCEL", titleStyle);
+            var safe = HubLayout.SafeRect;
+            var top = Screen.height - safe.yMax;
+            GUI.Label(new Rect(safe.x + 36f, top + 25f, safe.width * 0.63f - 230f, 54f), "PURRCEL", titleStyle);
             DrawCoinTopBar();
             DrawTabBar();
 
@@ -102,23 +103,53 @@ namespace CatCourier.UI
 
             GUILayout.EndArea();
 
+            // The Upgrades/Cats/Leaderboard panels are drawn by sibling presenters that
+            // each call BeginContent on the same rect. Warn if one is missing, so a
+            // disabled component reads as a bug instead of a silently blank tab.
+            if (HubTabs.Active != HubTab.Run && !HasPresenterForActiveTab())
+            {
+                GUILayout.BeginArea(HubLayout.ContentRect);
+                GUILayout.Label($"The {HubTabs.Active} panel is not available in this build.");
+                GUILayout.EndArea();
+            }
+
             DrawFooter();
+        }
+
+        private static bool HasPresenterForActiveTab()
+        {
+            switch (HubTabs.Active)
+            {
+                case HubTab.Upgrades:
+                    return FindObjectOfType<UpgradeListPresenter>() != null;
+                case HubTab.Cats:
+                    return FindObjectOfType<CatSelectorPresenter>() != null;
+                case HubTab.Leaderboard:
+                    return FindObjectOfType<LeaderboardPresenter>() != null;
+                default:
+                    return true;
+            }
         }
 
         private void DrawCoinTopBar()
         {
-            var rect = new Rect(Screen.width * 0.63f - 183f, 34f, 150f, 38f);
-            GUI.Box(rect, $"●  {SaveSystem.Instance?.TotalCoins ?? 0} coins", selectedTabStyle);
+            GUI.Box(HubLayout.HubRect(-183f, 34f, 150f, 38f),
+                $"●  {SaveSystem.Instance?.TotalCoins ?? 0} coins", selectedTabStyle);
         }
 
         private void DrawTabBar()
         {
-            var width = Screen.width * 0.63f - 64f;
+            var safe = HubLayout.SafeRect;
+            var width = safe.width * 0.63f - 64f;
             var tabWidth = (width - 18f) * 0.25f;
-            DrawTabButton(new Rect(32f, 108f, tabWidth, 42f), "Run", HubTab.Run);
-            DrawTabButton(new Rect(38f + tabWidth, 108f, tabWidth, 42f), "Upgrades", HubTab.Upgrades);
-            DrawTabButton(new Rect(44f + tabWidth * 2f, 108f, tabWidth, 42f), "Cats", HubTab.Cats);
-            DrawTabButton(new Rect(50f + tabWidth * 3f, 108f, tabWidth, 42f), "Leaders", HubTab.Leaderboard);
+            // Each button keeps its historical 6px stagger, measured from the safe
+            // area's left edge so a notch cannot shift the whole bar.
+            var left = safe.x;
+            var top = Screen.height - safe.yMax + 108f;
+            DrawTabButton(new Rect(left, top, tabWidth, 42f), "Run", HubTab.Run);
+            DrawTabButton(new Rect(left + 6f + tabWidth, top, tabWidth, 42f), "Upgrades", HubTab.Upgrades);
+            DrawTabButton(new Rect(left + 12f + tabWidth * 2f, top, tabWidth, 42f), "Cats", HubTab.Cats);
+            DrawTabButton(new Rect(left + 18f + tabWidth * 3f, top, tabWidth, 42f), "Leaders", HubTab.Leaderboard);
         }
 
         private void DrawTabButton(Rect rect, string label, HubTab tab)
@@ -241,7 +272,9 @@ namespace CatCourier.UI
 
         private void DrawFooter()
         {
-            var rect = new Rect(36f, Screen.height - 50f, Screen.width * 0.63f - 72f, 36f);
+            var safe = HubLayout.SafeRect;
+            var rect = new Rect(safe.x + 36f, Screen.height - safe.y - 50f,
+                safe.width * 0.63f - 72f, 36f);
             GUILayout.BeginArea(rect);
             GUILayout.BeginHorizontal();
             var muted = AudioManager.Instance != null && AudioManager.Instance.IsMuted;
@@ -270,21 +303,35 @@ namespace CatCourier.UI
             tabTexture = Solid(new Color(0.12f, 0.18f, 0.21f, 0.96f));
             selectedTexture = Solid(new Color(0.06f, 0.43f, 0.43f, 0.98f));
             startTexture = Solid(new Color(0.91f, 0.54f, 0.20f, 1f));
+            // ponytail: fixed pixel sizes ignored the OS text-size setting. These are
+            // a readable minimum; scale up on larger screens rather than guessing at
+            // a platform font scale API that IMGUI does not expose.
+            var scale = UiScale();
             titleStyle = new GUIStyle(GUI.skin.label) {
-                fontSize = 32, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft
+                fontSize = Mathf.RoundToInt(32f * scale), fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft
             };
             titleStyle.normal.textColor = new Color(1f, 0.91f, 0.73f);
             tabStyle = new GUIStyle(GUI.skin.button) {
-                fontSize = 16, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter
+                fontSize = Mathf.Max(16, Mathf.RoundToInt(16f * scale)),
+                fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter
             };
             tabStyle.normal.background = tabTexture;
             tabStyle.normal.textColor = Color.white;
             selectedTabStyle = new GUIStyle(tabStyle);
             selectedTabStyle.normal.background = selectedTexture;
-            startStyle = new GUIStyle(tabStyle) { fontSize = 22 };
+            startStyle = new GUIStyle(tabStyle) { fontSize = Mathf.Max(22, Mathf.RoundToInt(22f * scale)) };
             startStyle.normal.background = startTexture;
             startStyle.normal.textColor = new Color(0.15f, 0.12f, 0.08f);
             GUI.skin.label.normal.textColor = Color.white;
+        }
+
+        /// <summary>1x on a baseline phone, larger on wide or tall screens so text stays readable.</summary>
+        internal static float UiScale()
+        {
+            var safe = HubLayout.SafeRect;
+            var byWidth = safe.width / 1280f;
+            var byHeight = safe.height / 720f;
+            return Mathf.Clamp(Mathf.Min(byWidth, byHeight), 0.85f, 1.6f);
         }
 
         private static Texture2D Solid(Color color)

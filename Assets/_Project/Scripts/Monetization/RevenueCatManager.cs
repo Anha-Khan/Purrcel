@@ -112,6 +112,8 @@ namespace CatCourier.Monetization
 
             backend.Purchase(offeringId, packageId, outcome =>
             {
+                // A cancelled purchase is a player choice, not a store fault, so it
+                // must not report the SDK as degraded.
                 if (outcome == PurchaseOutcome.Error)
                 {
                     SetState(RevenueCatState.Degraded);
@@ -170,7 +172,6 @@ namespace CatCourier.Monetization
             initializing = true;
             backend.Initialize(publicKey, appUserId, initialized =>
             {
-                initializing = true;
                 HandleInitialized(initialized);
                 completed(initialized);
             });

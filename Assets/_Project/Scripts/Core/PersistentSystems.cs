@@ -75,10 +75,30 @@ namespace CatCourier.Core
             var useFakeBackend = revenueCatConfig != null
                 ? revenueCatConfig.ShouldUseFakeBackend()
                 : useFakeMonetizationInEditor;
+            WarnOnMissingRevenueCatConfig(useFakeBackend);
             revenueCat?.Initialize(revenueCatConfig, useFakeBackend);
             SceneLoader.Instance.OnSceneLoadFinished += HandleSceneLoadFinished;
             yield return null;
             SceneLoader.Instance?.Load(SceneNames.Hub);
+        }
+
+        /// <summary>
+        /// The config asset is gitignored, so a fresh clone has none and a development
+        /// build silently runs on fake purchases. That reads as a working store in a
+        /// demo, so say so loudly rather than failing quietly.
+        /// </summary>
+        private void WarnOnMissingRevenueCatConfig(bool useFakeBackend)
+        {
+            if (revenueCatConfig != null || !useFakeBackend || Application.isEditor)
+            {
+                return;
+            }
+
+            Debug.LogError(
+                "Purrcel: no RevenueCat config asset is assigned, so this build uses FAKE purchases. " +
+                "Run Cat Courier > Setup > Create Local RevenueCat Config, then " +
+                "Cat Courier > Setup > Use Real RevenueCat for Next Gen Demo, and paste your " +
+                "Test Store public key. A release build is unaffected: it always uses the real backend.");
         }
 
         private static void HandleSceneLoadFinished(string sceneName)
