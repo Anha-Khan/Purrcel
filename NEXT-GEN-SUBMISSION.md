@@ -11,10 +11,10 @@ The only purchase required for this demo is the monthly package above. `iap_bree
 ## 2. Configure and build the Unity project
 
 1. Open this Unity 2022.3.62f3 project. Install **Android Build Support**, including the SDK/NDK and OpenJDK modules.
-2. Run **Cat Courier → Setup → Apply All**.
-3. Run **Cat Courier → Setup → Use Real RevenueCat for Next Gen Demo**. It selects the local, ignored `RevenueCatConfig.asset` and sets sandbox mode with the **real** purchases backend.
+2. Run **Purrcel → Setup → Apply All**.
+3. Run **Purrcel → Setup → Use Real RevenueCat for Next Gen Demo**. It selects the local, ignored `RevenueCatConfig.asset` and sets sandbox mode with the **real** purchases backend.
 4. In that asset's Inspector, paste the key into **Development Test Store Public Key**. Leave the production key fields empty for this demo.
-5. Run **Cat Courier → Build → Android Next Gen Demo APK**. It refuses to build if the backend is fake or the key is missing. The development APK is written to `Builds/Android/CatCourier.apk`.
+5. Run **Purrcel → Build → Android Next Gen Demo APK**. It refuses to build if the backend is fake or the key is missing. The development APK is written to `Builds/Android/CatCourier.apk`.
 6. Install that APK on an Android phone with USB debugging enabled, for example with `adb install -r Builds/Android/CatCourier.apk`. The RevenueCat Unity SDK is unsupported in the Unity Editor, so test the purchase on the phone.
 
 Test Store keys only work in debuggable development builds. Never upload a build using one to Google Play; RevenueCat deliberately rejects such keys in release builds.

@@ -1,0 +1,26 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- A — "Flap"
+
+       A coin that is a cat. The circle is the run's coin purse; the two triangles standing
+       out of its top are a cat's ears, and an ear is an open parcel flap — so the mark says
+       delivery without ever drawing a box, a van or an arrow.
+
+       The ears are part of the outline rather than shapes laid on top, so there are no
+       overlaps for even-odd to invert. Nudged up 12px: the head is a heavy disc with light
+       ears, so the perceived centre sits below the geometric one and the mark needs air
+       underneath to look centred. -->
+  <title>Purrcel</title>
+  <path fill="#000000" fill-rule="evenodd" d="
+    M40 146
+    A88 88 0 0 1 74 77
+    L66 14
+    L116 59
+    A88 88 0 0 1 140 59
+    L190 14
+    L182 77
+    A88 88 0 0 1 216 146
+    A88 88 0 0 1 40 146
+    Z
+    M114 168L142 168L128 188Z
+  "/>
+</svg>
